@@ -9,7 +9,8 @@ import ProgressBar from '../../components/ProgressBar'
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
 import { ApiError } from '../../lib/api'
-import { formatDate, formatNumber, formatPercent, formatRupees } from '../../lib/format'
+import { formatDate, formatNumber, formatPercent, formatRupees, formatTimestampDate } from '../../lib/format'
+import ProjectProgressSection from '../progress/ProjectProgressSection'
 import { BehindScheduleBadge, StatusBadge } from './ProjectBadges'
 import ProjectNotFound from './ProjectNotFound'
 import { TYPE_LABELS } from './projectLabels'
@@ -18,7 +19,6 @@ import { useDeleteProject, useProject } from './useProjects'
 import { useProjectIdParam } from './useProjectIdParam'
 
 const NOT_FOUND_STATUS = 404
-const FULL_PERCENT = 100
 
 function DetailItem({ icon: Icon, label, children }: { icon: typeof MapPin; label: string; children: ReactNode }) {
   return (
@@ -51,14 +51,14 @@ function ProgressCard({ project }: { project: Project }) {
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-600">
         <span>{formatPercent(project.expected_percent)} of the timeline has passed.</span>
         {project.is_behind_schedule && <BehindScheduleBadge />}
-        {project.progress_percent > FULL_PERCENT && (
+        {project.is_target_exceeded && (
           <span className="rounded-full bg-forest-100 px-2 py-0.5 text-xs font-semibold text-forest-900">
             Exceeded target
           </span>
         )}
       </div>
       <p className="mt-3 text-xs text-stone-500">
-        {project.last_updated_at ? `Last progress update ${formatDate(project.last_updated_at)}.` : 'No progress logged yet.'}
+        {project.last_updated_at ? `Last progress update ${formatTimestampDate(project.last_updated_at)}.` : 'No progress logged yet.'}
       </p>
     </div>
   )
@@ -113,6 +113,8 @@ function ProjectDetails({ project }: { project: Project }) {
 
       <ProgressCard project={project} />
 
+      <ProjectProgressSection project={project} />
+
       <dl className="grid gap-5 rounded-2xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
         <DetailItem icon={MapPin} label="Location">
           {project.district ? `${project.district}, ` : ''}
@@ -137,7 +139,7 @@ function ProjectDetails({ project }: { project: Project }) {
       )}
 
       <p className="text-xs text-stone-500">
-        Created {formatDate(project.created_at)} · Last edited {formatDate(project.updated_at)}
+        Created {formatTimestampDate(project.created_at)} · Last edited {formatTimestampDate(project.updated_at)}
       </p>
 
       <ConfirmDialog

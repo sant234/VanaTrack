@@ -12,6 +12,7 @@ The database enforces these rules, so no code path can leave orphaned rows behin
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -29,6 +30,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.user import User
+
+if TYPE_CHECKING:  # only for type hints; avoids a circular import at runtime
+    from app.models.progress_update import ProgressUpdate
 
 
 class ProjectType(StrEnum):
@@ -86,6 +90,9 @@ class Project(Base):
     )
 
     owner: Mapped[User] = relationship()
+    # passive_deletes=True: when a project is deleted, the ORM leaves its progress updates to the
+    # database's ON DELETE CASCADE instead of loading them and trying to clear their project_id.
+    progress_updates: Mapped[list["ProgressUpdate"]] = relationship(passive_deletes=True)
 
     def __repr__(self) -> str:
         return f"<Project id={self.id} name={self.name!r} owner_id={self.owner_id}>"

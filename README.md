@@ -102,7 +102,7 @@ An owner who is later demoted to viewer loses edit rights on their projects (vie
 | **Who can create** | Managers and admins. The creator becomes the owner; ownership cannot be changed by editing |
 | **Who can edit/delete** | The owning manager, or any admin. Others get `403 "You can only modify projects you own."` |
 | **Validation** | Name 3–150 chars · target a whole number > 0 · end date on/after start date (also checked against saved dates on partial edits) · state from the official list of 28 states + 8 UTs · budget ≥ 0 with at most 2 decimals |
-| **Progress** | Never stored. `progress_percent`, `expected_percent` and `is_behind_schedule` are calculated on every request in `services/progress_service.py` (behind = active and more than 10 points behind the timeline; "today" uses India time) |
+| **Progress** | Never stored on the project. `current_value` is the latest progress update; `progress_percent`, `expected_percent`, `is_behind_schedule` and `is_target_exceeded` are calculated on every request in `services/progress_service.py` (behind = active and more than 10 points behind the timeline; "today" uses India time) |
 | **List filters** | `search`, `type`, `status`, `state`, `mine`, `sort` (`name`, `created_at`, `end_date`, `progress`) + `order`. In the UI they live in the URL, so refresh and shared links keep them |
 
 ### Deletion policy
@@ -111,6 +111,40 @@ records that belong to the project are deleted with it (**CASCADE**), history en
 link cleared (**SET NULL**), and a user who owns projects cannot be deleted (**RESTRICT**, deactivate instead).
 Tests read the live schema and fail if any foreign key lacks an explicit rule or a deleted project leaves
 references behind. Details: [DATABASE.md, section 3.5](DATABASE.md).
+
+---
+
+## How the 600 → 850 scenario is handled
+
+> *A project has a target of 1,000 trees and 600 have been planted. Later the number is updated to 850.*
+
+**Progress is an append-only log, not a number that gets overwritten.** Each update stores the new running
+total ("850 planted so far") and the total just before it, which the server fills in itself. Updating 600 to 850
+adds a second row, `600 → 850 (+250)`, logged by a named user at a recorded time. The first row (`0 → 600`) is
+never changed, so the full history stays visible on the project page as a timeline and a chart.
+
+**Every number is derived from that log, never stored separately.** The project's current value is simply
+its latest update, and progress % is `current ÷ target` (850 ÷ 1,000 = **85%**). The project page, the project
+list, sorting by progress and (Prompt 4) the dashboard all read the same database query, so they cannot
+disagree. After saving, the app refreshes every screen that shows project numbers before it confirms the save,
+so 85% appears everywhere at once, without reloading the page.
+
+**Wrong or suspicious input is rejected with a clear message:**
+
+| Input | Result |
+|---|---|
+| `-5`, `12.5`, `"850"` | 422, "Enter a whole number" |
+| 850 again | 400 `PROGRESS_NO_CHANGE` |
+| 700 (a drop) without explanation | 400 `PROGRESS_DECREASE_REQUIRES_NOTE`. The form asks to mark it as a **correction** with a reason of at least 10 characters (e.g. *"50 saplings died, recount"*). It is then saved as `850 → 700 (−150)` with a *Correction* badge |
+| 10,001 on a 1,000 target | 400 `PROGRESS_UNREALISTIC` (likely an extra zero) |
+| 1,120 on a 1,000 target | Allowed: real over-achievement shows **112%** and *Exceeded target* |
+| A future date, or a date before the previous update | 422 |
+| Any update on a completed or cancelled project | 400 `PROJECT_CLOSED` |
+
+**Unauthorized changes are refused.** Only the project's owning manager or an admin can log progress. A viewer
+or another manager gets **403 "You can only modify projects you own."**, and the *Log progress* button is not
+shown to them. Updates cannot be edited at all; an admin can only undo the **newest** entry, so the history
+always reads correctly. The rules are enforced on the server and again by database constraints.
 
 ---
 

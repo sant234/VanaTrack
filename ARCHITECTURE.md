@@ -153,7 +153,7 @@ Project responses always include derived fields: `current_value`, `progress_perc
 |---|---|---|
 | GET | `/projects/{id}/progress` | All |
 | POST | `/projects/{id}/progress` | Owner, Admin |
-| DELETE | `/projects/{id}/progress/{update_id}` | Admin only (logged to activity) |
+| DELETE | `/projects/{id}/progress/{update_id}` | Admin only, **newest entry only** (logged to activity) |
 
 ### Dashboard
 | Method | Path | Returns |
@@ -192,8 +192,12 @@ Project responses always include derived fields: `current_value`, `progress_perc
 | Value equals current | 400 `PROGRESS_NO_CHANGE` |
 | Value above target | Allowed. Progress shown as e.g. 112% with an **"Exceeded target"** badge (overachievement is real) |
 | Value above 10× target | 400 `PROGRESS_UNREALISTIC` (likely typo, e.g. extra zero) |
-| `recorded_at` in the future | 422 |
-| Logging progress on a `completed` or `cancelled` project | 400 |
+| `recorded_at` in the future, or without a timezone | 422 |
+| `recorded_at` before the latest update, or before the project start date | 422 (keeps the log in time order, so `previous_value` is always the total just before) |
+| Logging progress on a `completed` or `cancelled` project | 400 `PROJECT_CLOSED` |
+| Correction (`is_correction=true`) with a note under 10 characters | 422 on `note` |
+| Value above 2,000,000,000 (INTEGER safety) or not a whole number | 422 |
+| Deleting any update except the newest | 400 `PROGRESS_NOT_LATEST` (add a correction instead) |
 | Project `end_date` before `start_date` | 422 |
 | Changing a project's `target_value` below its current value | Allowed, but response flags it; UI warns before saving |
 

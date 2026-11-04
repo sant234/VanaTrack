@@ -3,8 +3,8 @@
 from datetime import date
 
 from fastapi import status
-from sqlalchemy import ColumnElement, Row, Select, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import ColumnElement, Row
+from sqlalchemy.orm import Session
 
 from app.errors import AppError, field_validation_error
 from app.models.project import Project
@@ -20,24 +20,13 @@ from app.schemas.project import (
     SortOrder,
 )
 from app.services.progress_service import (
+    ProgressColumns,
     build_progress,
-    current_value_column,
-    last_updated_column,
-    progress_percent_column,
+    select_projects_with_progress,
     today_in_app_timezone,
 )
 
 LIKE_ESCAPE_CHAR = "\\"
-
-
-def _projects_with_progress() -> Select:
-    """One query shape for both list and detail, so both always show the same progress numbers."""
-    return select(
-        Project,
-        current_value_column().label("current_value"),
-        progress_percent_column().label("progress_percent"),
-        last_updated_column().label("last_updated_at"),
-    ).options(joinedload(Project.owner))
 
 
 def _to_project_out(row: Row, viewer: User, today: date) -> ProjectOut:
@@ -63,6 +52,7 @@ def _to_project_out(row: Row, viewer: User, today: date) -> ProjectOut:
         progress_percent=progress.progress_percent,
         expected_percent=progress.expected_percent,
         is_behind_schedule=progress.is_behind_schedule,
+        is_target_exceeded=progress.is_target_exceeded,
         last_updated_at=progress.last_updated_at,
         can_edit=can_edit_project(viewer, project),
     )
@@ -75,18 +65,19 @@ def _escape_like(text: str) -> str:
     return text
 
 
-def _sort_column(sort: ProjectSort) -> ColumnElement:
+def _sort_column(sort: ProjectSort, progress: ProgressColumns) -> ColumnElement:
     columns = {
         ProjectSort.NAME: Project.name,
         ProjectSort.CREATED_AT: Project.created_at,
         ProjectSort.END_DATE: Project.end_date,
-        ProjectSort.PROGRESS: progress_percent_column(),
+        ProjectSort.PROGRESS: progress.progress_percent,
     }
     return columns[sort]
 
 
 def list_projects(db: Session, params: ProjectListParams, viewer: User) -> list[ProjectOut]:
-    query = _projects_with_progress()
+    # The same query (and so the same numbers) as the detail page: see progress_service.
+    query, progress = select_projects_with_progress()
     if params.search:
         query = query.where(Project.name.ilike(f"%{_escape_like(params.search)}%", escape=LIKE_ESCAPE_CHAR))
     if params.type:
@@ -98,7 +89,7 @@ def list_projects(db: Session, params: ProjectListParams, viewer: User) -> list[
     if params.mine:
         query = query.where(Project.owner_id == viewer.id)
 
-    sort_column = _sort_column(params.sort)
+    sort_column = _sort_column(params.sort, progress)
     if params.order == SortOrder.DESC:
         # Project id breaks ties, so the order is stable when two projects share a value.
         query = query.order_by(sort_column.desc(), Project.id.desc())
@@ -121,7 +112,8 @@ def get_project_or_404(db: Session, project_id: int) -> Project:
 
 
 def get_project_out(db: Session, project_id: int, viewer: User) -> ProjectOut:
-    row = db.execute(_projects_with_progress().where(Project.id == project_id)).first()
+    query, _progress = select_projects_with_progress()
+    row = db.execute(query.where(Project.id == project_id)).first()
     if row is None:
         raise project_not_found_error()
     return _to_project_out(row, viewer, today_in_app_timezone())

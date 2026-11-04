@@ -8,6 +8,7 @@ import SelectField from '../../components/SelectField'
 import TextAreaField from '../../components/TextAreaField'
 import TextField from '../../components/TextField'
 import { ApiError } from '../../lib/api'
+import { formatNumber, formatPercent } from '../../lib/format'
 import { SUGGESTED_UNITS } from './projectLabels'
 import {
   toProjectInput,
@@ -24,9 +25,44 @@ type ProjectFormProps = {
   submitLabel: string
   cancelTo: string
   onSubmit: (input: ProjectInput) => Promise<unknown>
+  /** Progress already recorded (edit only). Used to warn when the target is lowered below it. */
+  currentValue?: number
 }
 
-export default function ProjectForm({ initialValues, options, submitLabel, cancelTo, onSubmit }: ProjectFormProps) {
+const WHOLE_NUMBER = /^\d+$/
+
+/**
+ * Lowering the target below what was already achieved is allowed (ARCHITECTURE 7.2), but the user
+ * should know before saving: progress will show above 100%.
+ */
+function TargetBelowProgressWarning({
+  targetText,
+  currentValue,
+  unit,
+}: {
+  targetText: string
+  currentValue: number
+  unit: string
+}) {
+  const target = WHOLE_NUMBER.test(targetText.trim()) ? Number(targetText.trim()) : null
+  if (target === null || target <= 0 || target >= currentValue) return null
+  const percent = Math.round((currentValue * 1000) / target) / 10
+  return (
+    <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      This target is below the {formatNumber(currentValue)} {unit.trim()} already recorded. You can still save it;
+      the project will then show {formatPercent(percent)} (target exceeded).
+    </p>
+  )
+}
+
+export default function ProjectForm({
+  initialValues,
+  options,
+  submitLabel,
+  cancelTo,
+  onSubmit,
+  currentValue = 0,
+}: ProjectFormProps) {
   const [values, setValues] = useState(initialValues)
   const [errors, setErrors] = useState<ProjectFormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -144,6 +180,7 @@ export default function ProjectForm({ initialValues, options, submitLabel, cance
             error={errors.unit}
           />
         </div>
+        <TargetBelowProgressWarning targetText={values.target_value} currentValue={currentValue} unit={values.unit} />
         <TextField
           label="Budget in ₹ (optional)"
           inputMode="decimal"

@@ -196,6 +196,8 @@ class ProjectOut(BaseModel):
     progress_percent: float
     expected_percent: float
     is_behind_schedule: bool
+    # Current value is above the target: over-achievement, or a target edited below what was achieved.
+    is_target_exceeded: bool
     last_updated_at: datetime | None
     # Whether the user who asked may edit or delete this project.
     can_edit: bool

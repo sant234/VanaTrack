@@ -23,6 +23,8 @@ export type Project = {
   progress_percent: number
   expected_percent: number
   is_behind_schedule: boolean
+  /** Current value is above the target (over-achieved, or the target was lowered below it). */
+  is_target_exceeded: boolean
   last_updated_at: string | null
   can_edit: boolean
 }

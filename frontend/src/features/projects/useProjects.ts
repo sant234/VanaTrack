@@ -25,13 +25,18 @@ export const projectKeys = {
   options: ['project-options'] as const,
 }
 
-/** Everything that shows project numbers must refresh after a change. */
-function invalidateProjectData(queryClient: QueryClient, projectId?: number) {
-  void queryClient.invalidateQueries({ queryKey: projectKeys.lists })
-  void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+/**
+ * Everything that shows project numbers must refresh after a change: lists, the dashboard (Prompt 4),
+ * the activity log (Prompt 5), and the changed project's own page and progress history.
+ */
+export function invalidateProjectData(queryClient: QueryClient, projectId?: number): Promise<unknown> {
+  const keys: unknown[][] = [[...projectKeys.lists], ['dashboard'], ['activity']]
   if (projectId !== undefined) {
-    void queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) })
+    keys.push([...projectKeys.detail(projectId)], ['progress', projectId])
   }
+  // Returning the promise makes a mutation wait until the fresh numbers have arrived, so a
+  // "saved" message never appears next to the old numbers.
+  return Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })))
 }
 
 export function useProjectList(params: ProjectListParams) {
@@ -68,7 +73,7 @@ export function useUpdateProject(projectId: number) {
     mutationFn: (input: ProjectInput) => updateProject(projectId, input),
     onSuccess: (project) => {
       queryClient.setQueryData(projectKeys.detail(projectId), project)
-      invalidateProjectData(queryClient, projectId)
+      return invalidateProjectData(queryClient, projectId)
     },
   })
 }
@@ -79,7 +84,7 @@ export function useDeleteProject(projectId: number) {
     mutationFn: () => deleteProject(projectId),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: projectKeys.detail(projectId) })
-      invalidateProjectData(queryClient)
+      return invalidateProjectData(queryClient)
     },
   })
 }

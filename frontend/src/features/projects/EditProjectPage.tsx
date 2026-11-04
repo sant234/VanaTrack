@@ -34,6 +34,7 @@ export default function EditProjectPage() {
         key={project.data.id}
         initialValues={formValuesFromProject(project.data)}
         options={options.data}
+        currentValue={project.data.current_value}
         submitLabel="Save changes"
         cancelTo={`/projects/${projectId}`}
         onSubmit={async (input) => {
