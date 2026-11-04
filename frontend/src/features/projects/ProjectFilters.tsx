@@ -16,7 +16,7 @@ export default function ProjectFilters({ controls, options, role }: ProjectFilte
   const stateOptions = (options?.states ?? []).map((state) => ({ value: state, label: state }))
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <div className="relative sm:col-span-2">
         <label htmlFor="project-search" className="sr-only">
           Search projects by name
@@ -63,7 +63,7 @@ export default function ProjectFilters({ controls, options, role }: ProjectFilte
         onChange={(event) => setFilter('sort_by', event.target.value)}
       />
       {role !== 'viewer' && (
-        <label className="flex min-h-10 items-center gap-2 text-sm text-stone-700 sm:col-span-2 lg:col-span-6">
+        <label className="flex min-h-10 items-center gap-2 text-sm text-stone-700 sm:col-span-2 xl:col-span-6">
           <input
             type="checkbox"
             checked={filters.mine}

@@ -46,25 +46,27 @@ export function useProjectFilters() {
 
   const hasActiveFilters = FILTER_KEYS.some((key) => Boolean(searchParams.get(key)))
 
+  /**
+   * Start every change from the address bar itself, not from the last rendered copy of it.
+   * Two quick changes (e.g. untick "Only my projects", then pick a sort) can happen before React
+   * re-renders; starting from a stale copy would silently undo the first change.
+   */
+  function latestParams(): URLSearchParams {
+    return new URLSearchParams(window.location.search)
+  }
+
   /** Set one filter; an empty value removes it from the URL. replace: typing does not flood history. */
   function setFilter(key: FilterKey | 'sort_by', value: string) {
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        if (value && !(key === 'sort_by' && value === DEFAULT_SORT)) next.set(key, value)
-        else next.delete(key)
-        return next
-      },
-      { replace: true },
-    )
+    const next = latestParams()
+    if (value && !(key === 'sort_by' && value === DEFAULT_SORT)) next.set(key, value)
+    else next.delete(key)
+    setSearchParams(next, { replace: true })
   }
 
   function clearFilters() {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current)
-      FILTER_KEYS.forEach((key) => next.delete(key))
-      return next
-    })
+    const next = latestParams()
+    FILTER_KEYS.forEach((key) => next.delete(key))
+    setSearchParams(next)
   }
 
   return { filters, apiParams, hasActiveFilters, setFilter, clearFilters }

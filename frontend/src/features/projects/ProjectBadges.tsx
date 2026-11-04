@@ -11,7 +11,7 @@ const STATUS_STYLES: Record<ProjectStatus, string> = {
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
+    <span className={`inline-flex rounded-full whitespace-nowrap px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
       {STATUS_LABELS[status]}
     </span>
   )
@@ -19,7 +19,7 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
 
 export function BehindScheduleBadge() {
   return (
-    <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+    <span className="inline-flex rounded-full whitespace-nowrap bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
       Behind schedule
     </span>
   )

@@ -45,13 +45,27 @@ export default function ProjectForm({ initialValues, options, submitLabel, cance
     })
   }
 
+  /**
+   * The submit button sits at the bottom, far from most fields. After React has drawn the red fields,
+   * move to the first one and put the cursor in it, so the user sees what to fix.
+   */
+  function focusFirstInvalidField(form: HTMLFormElement) {
+    requestAnimationFrame(() => {
+      const firstInvalid = form.querySelector<HTMLElement>('[aria-invalid="true"]')
+      firstInvalid?.scrollIntoView({ block: 'center' })
+      firstInvalid?.focus({ preventScroll: true })
+    })
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     setFormError(null)
     const clientErrors = validateProjectForm(values)
     setErrors(clientErrors)
     if (Object.keys(clientErrors).length > 0) {
       setFormError('Please fix the highlighted fields.')
+      focusFirstInvalidField(form)
       return
     }
 
@@ -62,6 +76,7 @@ export default function ProjectForm({ initialValues, options, submitLabel, cance
       if (error instanceof ApiError && Object.keys(error.fields).length > 0) {
         setErrors(error.fields as ProjectFormErrors)
         setFormError('Please fix the highlighted fields.')
+        focusFirstInvalidField(form)
       } else {
         setFormError(error instanceof ApiError ? error.message : 'Something went wrong. Please try again.')
       }
