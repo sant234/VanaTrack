@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 VALIDATION_ERROR_CODE = "VALIDATION_ERROR"
+PYDANTIC_VALUE_ERROR_PREFIX = "Value error, "
 
 # Default codes for plain HTTP errors raised by the framework itself (e.g. unknown URL).
 DEFAULT_CODES_BY_STATUS = {
@@ -29,13 +30,29 @@ class AppError(Exception):
     """Raise this anywhere in the app to return a clean, predictable error response."""
 
     def __init__(
-        self, status_code: int, code: str, message: str, headers: dict[str, str] | None = None
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        headers: dict[str, str] | None = None,
+        fields: dict[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.headers = headers
+        self.fields = fields
+
+
+def field_validation_error(fields: dict[str, str]) -> AppError:
+    """A 422 for rules Pydantic cannot check alone (e.g. comparing a new value with a saved one)."""
+    return AppError(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        VALIDATION_ERROR_CODE,
+        "Some fields are invalid. Please check and try again.",
+        fields=fields,
+    )
 
 
 def _error_body(message: str, code: str) -> dict[str, object]:
@@ -43,11 +60,10 @@ def _error_body(message: str, code: str) -> dict[str, object]:
 
 
 async def handle_app_error(_request: Request, error: AppError) -> JSONResponse:
-    return JSONResponse(
-        status_code=error.status_code,
-        content=_error_body(error.message, error.code),
-        headers=error.headers,
-    )
+    body = _error_body(error.message, error.code)
+    if error.fields:
+        body["fields"] = error.fields
+    return JSONResponse(status_code=error.status_code, content=body, headers=error.headers)
 
 
 async def handle_http_error(_request: Request, error: StarletteHTTPException) -> JSONResponse:
@@ -62,7 +78,9 @@ async def handle_validation_error(_request: Request, error: RequestValidationErr
         # "loc" looks like ("body", "email"); drop the "body"/"query" prefix to get the field name.
         field_path = [str(part) for part in issue["loc"] if part not in ("body", "query", "path")]
         field_name = ".".join(field_path) or "request"
-        fields.setdefault(field_name, issue["msg"])
+        # Our own validators raise ValueError, which Pydantic prefixes with "Value error, ".
+        message = issue["msg"].removeprefix(PYDANTIC_VALUE_ERROR_PREFIX)
+        fields.setdefault(field_name, message)
 
     body = _error_body("Some fields are invalid. Please check and try again.", VALIDATION_ERROR_CODE)
     body["fields"] = fields
