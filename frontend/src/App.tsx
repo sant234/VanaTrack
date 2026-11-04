@@ -6,6 +6,7 @@ import RegisterPage from './features/auth/RegisterPage'
 import RoleGate from './features/auth/RoleGate'
 import AppLayout from './layouts/AppLayout'
 import HealthCheckPage from './pages/HealthCheckPage'
+import ProjectsListPage from './features/projects/ProjectsListPage'
 import NotAuthorizedPage from './pages/NotAuthorizedPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
@@ -23,10 +24,7 @@ export default function App() {
             index
             element={<PlaceholderPage title="Dashboard" description="Live stats and charts arrive in Prompt 4." />}
           />
-          <Route
-            path="projects"
-            element={<PlaceholderPage title="Projects" description="Project management arrives in Prompt 2." />}
-          />
+          <Route path="projects" element={<ProjectsListPage />} />
           <Route
             path="activity"
             element={<PlaceholderPage title="Activity" description="The activity log arrives in Prompt 5." />}
