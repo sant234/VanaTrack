@@ -226,23 +226,34 @@ Every create/update/delete on projects, every progress update, and every role ch
 
 ## 8. Dashboard Design
 
+Every endpoint accepts `?type=` and is computed per request from the **same query and rules as the project
+list** (`progress_service.select_projects_with_progress` + `build_progress`), so the dashboard and the project
+pages can never disagree. No totals are cached or stored.
+
+**Completion is unit-free.** Projects are measured in different units (trees, kW, kL water ...), so
+"sum achieved / sum target" across projects would add trees to kilowatts. Instead each project's completion %
+is used, **capped at 100%** (one over-achiever cannot hide projects that are behind), and averaged.
+A project **counts toward completion** only if it is not cancelled (it will never finish) and has started
+(0% is expected before the start date). Cancelled projects still count in "Total projects".
+
 **KPI cards (row 1)**
 - Total projects · Active projects
-- Overall completion % (sum achieved / sum target, tree projects)
+- Average completion % (of counted projects)
 - Trees planted (sum of current values where `lower(unit) = 'trees'`; units keep their capitalisation, e.g. kW)
-- Projects behind schedule
-- Est. CO₂ absorbed per year (trees × configurable factor, labeled "estimate")
+- Projects behind schedule · Projects that exceeded their target
+- Est. CO₂ absorbed per year (trees × `CO2_KG_PER_TREE_PER_YEAR`, in tonnes, labelled "estimate")
 
 **Charts (row 2)**
-- **Bar:** progress % per project (top 10, colored by on-track / behind / exceeded)
-- **Line:** cumulative achieved over time (monthly)
-- **Donut:** projects by type
-- **Bar:** achieved by state
+- **Bars:** progress % per project (top 10, coloured AND labelled on track / behind / exceeded; palette checked for colour blindness)
+- **Line:** average completion at each month-end for the last 12 months (current month = today); a month with no update carries the previous total forward; months before any project started are gaps. A table view sits under the chart.
+- **Ranked bars:** projects by type (count + average completion). Ranked bars replace the originally planned donut: they compare categories more exactly and print each count.
+- **Bars:** average completion by state, with project count and trees planted
 
 **Needs attention (row 3)**
-- Table of behind-schedule projects and projects with no update in 30+ days, each linking to the project.
+- Projects that are **behind schedule**, or **active with no progress update for 30+ days** (counted from the start date if nothing was ever logged), furthest behind first, each linking to the project.
 
-All numbers are SQL aggregates computed per request. No cached totals.
+**Freshness:** every save invalidates the dashboard cache, and dashboard queries refetch whenever the tab
+regains focus (`refetchOnWindowFocus: 'always'`), so progress logged in another tab appears on return.
 
 ---
 
