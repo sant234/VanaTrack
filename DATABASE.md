@@ -100,13 +100,19 @@ CREATE TABLE progress_updates (
     recorded_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),        -- when it happened in the field
     created_by      INTEGER      NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),        -- when it was entered
-    CONSTRAINT correction_needs_note CHECK (is_correction = FALSE OR length(note) >= 10)
+    -- "note IS NOT NULL" is required: length(NULL) is NULL, and a CHECK that evaluates to NULL PASSES,
+    -- so "is_correction = FALSE OR length(note) >= 10" would accept a correction with no note at all.
+    CONSTRAINT ck_progress_updates_correction_needs_note
+        CHECK (is_correction = FALSE OR (note IS NOT NULL AND char_length(btrim(note)) >= 10))
 );
 
-CREATE INDEX idx_progress_project_recorded ON progress_updates(project_id, recorded_at DESC, id DESC);
+CREATE INDEX ix_progress_updates_project_latest ON progress_updates(project_id, recorded_at DESC, id DESC);
+CREATE INDEX ix_progress_updates_created_by     ON progress_updates(created_by);
 ```
 - No `UPDATE` endpoint exists for this table. Mistakes are fixed with a new correction entry.
-- Only an admin can delete an entry, and the deletion is written to `activity_logs`.
+- `previous_value` is always filled in by the server (the latest total at the moment of logging); the project row is locked during the insert so two simultaneous saves cannot both record the same previous value.
+- The log stays in time order: `recorded_at` may not be earlier than the latest update or before the project's start date.
+- Only an admin can delete an entry, and **only the newest one** (an "undo"). Deleting an older entry would leave the next entry's `previous_value` pointing at a total that no longer exists. The deletion is written to `activity_logs` (Prompt 5).
 - Deleting a project cascades its updates (the project deletion itself is logged).
 
 ### 3.4 `activity_logs`
