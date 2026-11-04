@@ -8,6 +8,7 @@ How test isolation works:
 """
 
 from collections.abc import Callable, Generator
+from datetime import date
 
 import bcrypt
 import pytest
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.main import create_app
+from app.models.project import Project, ProjectStatus, ProjectType
 from app.models.user import User, UserRole
 from app.security import create_access_token, hash_password
 
@@ -125,3 +127,49 @@ def create_user(db_session: Session) -> CreateUser:
 def auth_headers(user: User) -> dict[str, str]:
     """The Authorization header a logged-in browser would send for this user."""
     return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+
+
+def valid_project_payload(**overrides: object) -> dict[str, object]:
+    """A JSON body that passes every project rule; override single fields to test one rule at a time."""
+    payload: dict[str, object] = {
+        "name": "Hesaraghatta Grove",
+        "description": "Native saplings along the lake edge.",
+        "type": "afforestation",
+        "status": "active",
+        "target_value": 1000,
+        "unit": "trees",
+        "state": "Karnataka",
+        "district": "Bengaluru Urban",
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "budget_inr": 250000.0,
+    }
+    payload.update(overrides)
+    return payload
+
+
+CreateProject = Callable[..., Project]
+
+
+@pytest.fixture
+def create_project(db_session: Session) -> CreateProject:
+    """Factory: create_project(owner, name="...", status=ProjectStatus.ACTIVE, ...)."""
+
+    def _create_project(owner: User, **overrides: object) -> Project:
+        fields: dict[str, object] = {
+            "name": "Test Project",
+            "type": ProjectType.AFFORESTATION,
+            "status": ProjectStatus.ACTIVE,
+            "target_value": 1000,
+            "unit": "trees",
+            "state": "Karnataka",
+            "start_date": date(2026, 1, 1),
+            "end_date": date(2026, 12, 31),
+        }
+        fields.update(overrides)
+        project = Project(owner_id=owner.id, **fields)
+        db_session.add(project)
+        db_session.commit()
+        return project
+
+    return _create_project

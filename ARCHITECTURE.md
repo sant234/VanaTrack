@@ -225,7 +225,7 @@ Every create/update/delete on projects, every progress update, and every role ch
 **KPI cards (row 1)**
 - Total projects · Active projects
 - Overall completion % (sum achieved / sum target, tree projects)
-- Trees planted (sum of current values where unit = trees)
+- Trees planted (sum of current values where `lower(unit) = 'trees'`; units keep their capitalisation, e.g. kW)
 - Projects behind schedule
 - Est. CO₂ absorbed per year (trees × configurable factor, labeled "estimate")
 

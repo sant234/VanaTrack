@@ -1,7 +1,8 @@
 """Reusable guards that routes declare with Depends(...).
 
-get_current_user  -> who is calling? (401 if not logged in)
-require_roles(..) -> is their role allowed here? (403 if not)
+get_current_user                -> who is calling? (401 if not logged in)
+require_roles(..)               -> is their role allowed here? (403 if not)
+require_project_owner_or_admin  -> may they change this project? (404 if missing, 403 if not)
 """
 
 from collections.abc import Callable
@@ -12,8 +13,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.errors import AppError
+from app.models.project import Project
 from app.models.user import User, UserRole
+from app.permissions import can_edit_project
 from app.security import decode_access_token
+from app.services.project_service import get_project_or_404
 
 # auto_error=False lets us return our own error shape instead of FastAPI's default one.
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -59,3 +63,17 @@ def require_roles(*allowed_roles: UserRole) -> Callable[[User], User]:
         return current_user
 
     return check_role
+
+
+def require_project_owner_or_admin(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Project:
+    """Load the project from the URL and allow only its owning manager or an admin to continue."""
+    project = get_project_or_404(db, project_id)
+    if not can_edit_project(current_user, project):
+        raise AppError(
+            status.HTTP_403_FORBIDDEN, "NOT_PROJECT_OWNER", "You can only modify projects you own."
+        )
+    return project

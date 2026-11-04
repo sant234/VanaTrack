@@ -69,7 +69,7 @@ CREATE TABLE projects (
     type            project_type    NOT NULL,
     status          project_status  NOT NULL DEFAULT 'planned',
     target_value    INTEGER         NOT NULL CHECK (target_value > 0),
-    unit            VARCHAR(30)     NOT NULL,          -- 'trees', 'kL water', 'kW', 'kg waste'
+    unit            VARCHAR(30)     NOT NULL,          -- 'trees', 'kL water', 'kW', 'kg waste' (case kept; compare case-insensitively)
     state           VARCHAR(60)     NOT NULL,
     district        VARCHAR(60),
     start_date      DATE            NOT NULL,
@@ -126,6 +126,30 @@ CREATE INDEX idx_activity_created ON activity_logs(created_at DESC);
 CREATE INDEX idx_activity_project ON activity_logs(project_id);
 ```
 - `project_id` becomes NULL when a project is deleted, so the "deleted project X" entry survives. Store the project name in `details`.
+
+---
+
+## 3.5 Deletion Policy (mandatory for every foreign key)
+
+Every foreign key states **explicitly** what happens when the row it points to is deleted.
+PostgreSQL's silent default (`NO ACTION`) is never used.
+
+| Rule | Meaning | Used for |
+|---|---|---|
+| **CASCADE** | Delete the child rows too | Records that are meaningless without their parent: `progress_updates.project_id` |
+| **SET NULL** | Keep the row, clear the link | History that must survive: `activity_logs.project_id` (the project name is copied into `details`) |
+| **RESTRICT** | Refuse the delete | `projects.owner_id`, `progress_updates.created_by`, `activity_logs.user_id`. Users are **deactivated**, never deleted |
+
+How this is kept true:
+- The rule lives **in the database** (`ON DELETE ...`), so even a manual SQL delete cannot leave orphans.
+- SQLAlchemy relationships to child tables use `passive_deletes=True`, so the ORM leaves deletion to the database instead of issuing its own conflicting `UPDATE`/`DELETE` statements.
+- Deleting a project is one transaction: everything goes, or nothing does.
+- `backend/tests/test_deletion_policy.py` reads the **live schema** and fails if:
+  - any foreign key uses `NO ACTION`;
+  - any foreign key to `projects` is not `CASCADE` or `SET NULL`;
+  - after deleting a project through the API, any table still references its id.
+
+New tables in later prompts are covered by these tests automatically.
 
 ---
 
