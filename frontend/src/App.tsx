@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import LoginPage from './features/auth/LoginPage'
+import DashboardPage from './features/dashboard/DashboardPage'
 import ProtectedRoute from './features/auth/ProtectedRoute'
 import RegisterPage from './features/auth/RegisterPage'
 import RoleGate from './features/auth/RoleGate'
@@ -23,10 +24,7 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route
-            index
-            element={<PlaceholderPage title="Dashboard" description="Live stats and charts arrive in Prompt 4." />}
-          />
+          <Route index element={<DashboardPage />} />
           <Route path="projects" element={<ProjectsListPage />} />
           <Route
             path="projects/new"
