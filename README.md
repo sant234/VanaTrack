@@ -148,6 +148,30 @@ always reads correctly. The rules are enforced on the server and again by databa
 
 ---
 
+## Dashboard
+
+The home page (`/`) shows live figures for every project, or one project type (the filter is kept in the URL).
+Nothing on it is stored: each request recalculates from the projects and progress updates, using the same query
+as the project list, so the two always agree.
+
+| Widget | What it shows |
+|---|---|
+| **Key figures** | Total and active projects · average completion · trees planted · estimated CO₂ absorbed per year (trees × 21 kg, configurable) · behind schedule · exceeded target |
+| **Progress by project** | Top 10 projects by completion; each bar is coloured *and* labelled On track / Behind / Exceeded |
+| **Average completion over time** | The last 12 months, carrying each project's last total forward; includes a table view |
+| **Projects by type / Completion by state** | Ranked bars with counts, average completion and trees planted |
+| **Needs attention** | Projects behind schedule, or active with no update for 30+ days, each linking to its page |
+
+**Why "average completion" and not "total achieved ÷ total target":** projects use different units (trees, kW,
+kL of water), so adding them together would be meaningless. Each project's completion % is unit-free; the dashboard
+averages them, counting each project at most 100%, and leaves out cancelled and not-yet-started projects.
+
+In the brief's scenario, updating 600 → 850 changes *Trees planted* to **850** (not 1,450) and the project's
+completion to 85%. The dashboard refreshes right after a save, and also when you return to its tab after logging
+progress somewhere else.
+
+---
+
 ## Known trade-offs (to revisit)
 
 - **Login token in `localStorage`.** Simple and works across separate frontend/backend domains, but readable by
