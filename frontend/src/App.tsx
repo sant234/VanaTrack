@@ -4,9 +4,12 @@ import LoginPage from './features/auth/LoginPage'
 import ProtectedRoute from './features/auth/ProtectedRoute'
 import RegisterPage from './features/auth/RegisterPage'
 import RoleGate from './features/auth/RoleGate'
+import EditProjectPage from './features/projects/EditProjectPage'
+import NewProjectPage from './features/projects/NewProjectPage'
+import ProjectDetailPage from './features/projects/ProjectDetailPage'
+import ProjectsListPage from './features/projects/ProjectsListPage'
 import AppLayout from './layouts/AppLayout'
 import HealthCheckPage from './pages/HealthCheckPage'
-import ProjectsListPage from './features/projects/ProjectsListPage'
 import NotAuthorizedPage from './pages/NotAuthorizedPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
@@ -25,6 +28,16 @@ export default function App() {
             element={<PlaceholderPage title="Dashboard" description="Live stats and charts arrive in Prompt 4." />}
           />
           <Route path="projects" element={<ProjectsListPage />} />
+          <Route
+            path="projects/new"
+            element={
+              <RoleGate roles={['admin', 'manager']} fallback={<NotAuthorizedPage />}>
+                <NewProjectPage />
+              </RoleGate>
+            }
+          />
+          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="projects/:projectId/edit" element={<EditProjectPage />} />
           <Route
             path="activity"
             element={<PlaceholderPage title="Activity" description="The activity log arrives in Prompt 5." />}
