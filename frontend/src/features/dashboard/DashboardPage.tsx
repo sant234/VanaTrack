@@ -150,10 +150,14 @@ export default function DashboardPage() {
                 </Suspense>
               )}
             </Panel>
-            <Panel title="Projects by type" query={byType}>
+            <Panel title="Projects by type" subtitle="Cancelled and not-yet-started projects do not count toward completion" query={byType}>
               {(rows) => <ProjectsByType rows={rows} />}
             </Panel>
-            <Panel title="Completion by state" subtitle="Average completion · projects · trees" query={byState}>
+            <Panel
+              title="Completion by state"
+              subtitle="Average completion · projects · trees. Cancelled and not-yet-started projects are not counted."
+              query={byState}
+            >
               {(rows) => <CompletionByState rows={rows} />}
             </Panel>
           </div>

@@ -46,7 +46,8 @@ export function CompletionByState({ rows }: { rows: StateBreakdown[] }) {
           value={
             <>
               <span className="font-semibold text-stone-900">
-                {row.average_completion_percent === null ? 'Not started' : formatPercent(row.average_completion_percent)}
+                {/* null = every project here is cancelled or not started yet, so none counts toward completion */}
+                {row.average_completion_percent === null ? 'Not counted' : formatPercent(row.average_completion_percent)}
               </span>
               {` · ${plural(row.project_count, 'project')}`}
               {row.trees_planted > 0 && ` · ${formatNumber(row.trees_planted)} trees`}
