@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(min_length=JWT_SECRET_MIN_LENGTH)
     jwt_expire_minutes: int = 60 * 24
     cors_origins: str = "http://localhost:5173"
+    # "Today" for schedule maths. The server clock runs on UTC, but the organisation works in India.
+    app_timezone: str = "Asia/Kolkata"
     co2_kg_per_tree_per_year: float = 21.0
 
     @property
