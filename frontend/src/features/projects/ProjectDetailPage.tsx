@@ -9,7 +9,7 @@ import ProgressBar from '../../components/ProgressBar'
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
 import { ApiError } from '../../lib/api'
-import { formatDate, formatNumber, formatPercent, formatRupees } from '../../lib/format'
+import { formatDate, formatNumber, formatPercent, formatRupees, formatTimestampDate } from '../../lib/format'
 import { BehindScheduleBadge, StatusBadge } from './ProjectBadges'
 import ProjectNotFound from './ProjectNotFound'
 import { TYPE_LABELS } from './projectLabels'
@@ -58,7 +58,7 @@ function ProgressCard({ project }: { project: Project }) {
         )}
       </div>
       <p className="mt-3 text-xs text-stone-500">
-        {project.last_updated_at ? `Last progress update ${formatDate(project.last_updated_at)}.` : 'No progress logged yet.'}
+        {project.last_updated_at ? `Last progress update ${formatTimestampDate(project.last_updated_at)}.` : 'No progress logged yet.'}
       </p>
     </div>
   )
@@ -137,7 +137,7 @@ function ProjectDetails({ project }: { project: Project }) {
       )}
 
       <p className="text-xs text-stone-500">
-        Created {formatDate(project.created_at)} · Last edited {formatDate(project.updated_at)}
+        Created {formatTimestampDate(project.created_at)} · Last edited {formatTimestampDate(project.updated_at)}
       </p>
 
       <ConfirmDialog
