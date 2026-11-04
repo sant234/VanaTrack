@@ -28,11 +28,14 @@ DEFAULT_CODES_BY_STATUS = {
 class AppError(Exception):
     """Raise this anywhere in the app to return a clean, predictable error response."""
 
-    def __init__(self, status_code: int, code: str, message: str) -> None:
+    def __init__(
+        self, status_code: int, code: str, message: str, headers: dict[str, str] | None = None
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
+        self.headers = headers
 
 
 def _error_body(message: str, code: str) -> dict[str, object]:
@@ -40,7 +43,11 @@ def _error_body(message: str, code: str) -> dict[str, object]:
 
 
 async def handle_app_error(_request: Request, error: AppError) -> JSONResponse:
-    return JSONResponse(status_code=error.status_code, content=_error_body(error.message, error.code))
+    return JSONResponse(
+        status_code=error.status_code,
+        content=_error_body(error.message, error.code),
+        headers=error.headers,
+    )
 
 
 async def handle_http_error(_request: Request, error: StarletteHTTPException) -> JSONResponse:
