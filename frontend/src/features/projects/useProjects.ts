@@ -25,12 +25,17 @@ export const projectKeys = {
   options: ['project-options'] as const,
 }
 
-/** Everything that shows project numbers must refresh after a change. */
-function invalidateProjectData(queryClient: QueryClient, projectId?: number) {
+/**
+ * Everything that shows project numbers must refresh after a change: lists, the dashboard (Prompt 4),
+ * the activity log (Prompt 5), and the changed project's own page and progress history.
+ */
+export function invalidateProjectData(queryClient: QueryClient, projectId?: number) {
   void queryClient.invalidateQueries({ queryKey: projectKeys.lists })
   void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  void queryClient.invalidateQueries({ queryKey: ['activity'] })
   if (projectId !== undefined) {
     void queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) })
+    void queryClient.invalidateQueries({ queryKey: ['progress', projectId] })
   }
 }
 
