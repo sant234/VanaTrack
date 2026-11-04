@@ -2,7 +2,11 @@
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# HS256 tokens need a secret of at least 32 bytes to be hard to brute-force (RFC 7518 section 3.2).
+JWT_SECRET_MIN_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -12,7 +16,8 @@ class Settings(BaseSettings):
 
     database_url: str
     test_database_url: str | None = None
-    jwt_secret: str = "dev-only-secret-change-me"
+    # Required, no default: the app refuses to start without a strong secret.
+    jwt_secret: str = Field(min_length=JWT_SECRET_MIN_LENGTH)
     jwt_expire_minutes: int = 60 * 24
     cors_origins: str = "http://localhost:5173"
     co2_kg_per_tree_per_year: float = 21.0

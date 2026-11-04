@@ -2,16 +2,25 @@
  * The one place the frontend talks to the backend.
  *
  * - Prefixes every path with VITE_API_URL.
- * - Attaches the login token when one is saved (used from Prompt 1).
+ * - Attaches the saved login token as "Authorization: Bearer <token>".
  * - Turns any failed response into an ApiError with the backend's {detail, code, fields}.
+ * - When a logged-in request gets 401 (expired or revoked session), calls the unauthorized handler.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
 
-export const TOKEN_STORAGE_KEY = 'vanatrack_token'
+const TOKEN_STORAGE_KEY = 'vanatrack_token'
 
 /** Status code used when the request never reached the server (offline, server down, CORS). */
 const NETWORK_ERROR_STATUS = 0
+const UNAUTHORIZED_STATUS = 401
+
+let unauthorizedHandler: (() => void) | null = null
+
+/** Register what to do when the session stops being valid (the auth provider logs the user out). */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler
+}
 
 export type FieldErrors = Record<string, string>
 
@@ -31,12 +40,28 @@ export class ApiError extends Error {
 
 type ErrorBody = { detail?: unknown; code?: unknown; fields?: unknown }
 
-function readSavedToken(): string | null {
+// Storage can be blocked (e.g. some private-browsing modes). Then we simply behave as "not logged in".
+export function readSavedToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_STORAGE_KEY)
   } catch {
-    // Storage can be blocked (e.g. private mode). Treat that as "not logged in".
     return null
+  }
+}
+
+export function saveToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
+  } catch {
+    // Not saved: the user stays logged in until the page is reloaded.
+  }
+}
+
+export function clearSavedToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch {
+    // Nothing stored, nothing to clear.
   }
 }
 
@@ -67,6 +92,11 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   }
 
   if (!response.ok) {
+    // Only a request that carried a token means "your session ended". A 401 from the login form
+    // (wrong password) has no token and is just shown as a normal form error.
+    if (response.status === UNAUTHORIZED_STATUS && token) {
+      unauthorizedHandler?.()
+    }
     throw await toApiError(response)
   }
   if (response.status === 204) {
