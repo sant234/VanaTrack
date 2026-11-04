@@ -2,7 +2,7 @@
  * Running total over time, with the target as a reference line.
  *
  * Chart choices (see the data-visualisation guidelines): one series, so no legend box (the heading names it);
- * a 2px line with visible markers; solid hairline grid; the target is the only dashed line, because it is a
+ * dates on a true time scale; a 2px line with visible markers; solid hairline grid; the target is the only dashed line, because it is a
  * threshold; a crosshair tooltip; the same data is also listed in full in the history timeline beside it.
  */
 import {
@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import { formatDate, formatNumber, formatTimestampDate, toDateInput } from '../../lib/format'
+import { formatNumber, formatTimestampDate, toDateInput } from '../../lib/format'
 import type { ProgressUpdate } from './types'
 
 // Colours from the theme. The line colour (#3f8f55, forest-500) passed the palette validator on white.
@@ -27,16 +27,20 @@ const AXIS_TEXT_COLOR = '#57534e' // stone-600
 const CHART_HEIGHT = 260
 const Y_HEADROOM = 1.1 // keep the target line clear of the top edge
 
-type ChartPoint = { label: string; total: number }
+/** x is a real moment in time (milliseconds), so points sit at their true dates, not evenly spaced. */
+type ChartPoint = { time: number; total: number }
 
 /** Oldest first, starting from 0 on the project's start date so the climb is visible. */
 function toChartPoints(history: ProgressUpdate[], startDate: string): ChartPoint[] {
+  const [year, month, day] = startDate.split('-').map(Number)
   const oldestFirst = [...history].reverse()
   return [
-    { label: formatDate(startDate), total: 0 },
-    ...oldestFirst.map((entry) => ({ label: formatTimestampDate(entry.recorded_at), total: entry.value })),
+    { time: new Date(year, month - 1, day).getTime(), total: 0 },
+    ...oldestFirst.map((entry) => ({ time: new Date(entry.recorded_at).getTime(), total: entry.value })),
   ]
 }
+
+const formatTime = (time: number) => formatTimestampDate(new Date(time).toISOString())
 
 type ChartTooltipProps = {
   active?: boolean
@@ -49,7 +53,7 @@ function ChartTooltip({ active, payload, label, unit }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm shadow-md">
-      <p className="text-stone-500">{String(label)}</p>
+      <p className="text-stone-500">{formatTime(Number(label))}</p>
       <p className="font-semibold text-stone-900">
         {formatNumber(Number(payload[0].value))} {unit}
       </p>
@@ -78,7 +82,17 @@ export default function ProgressChart({
         <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
           <LineChart data={points} margin={{ top: 16, right: 16, bottom: 4, left: 4 }}>
             <CartesianGrid stroke={GRID_COLOR} vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: AXIS_TEXT_COLOR, fontSize: 12 }} tickLine={false} axisLine={{ stroke: GRID_COLOR }} minTickGap={24} />
+            <XAxis
+              dataKey="time"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
+              tickFormatter={formatTime}
+              tick={{ fill: AXIS_TEXT_COLOR, fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: GRID_COLOR }}
+              minTickGap={32}
+            />
             <YAxis
               domain={[0, Math.ceil(highest * Y_HEADROOM)]}
               tickFormatter={(value: number) => formatNumber(value)}
