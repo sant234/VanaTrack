@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+/* Brand colours, usable as Tailwind classes like bg-forest-700 or text-forest-900. */
+@theme {
+  --color-forest-50: #f1f8f2;
+  --color-forest-100: #dcefe0;
+  --color-forest-500: #3f8f55;
+  --color-forest-700: #24613a;
+  --color-forest-900: #133622;
+}
+
+body {
+  @apply bg-stone-50 text-stone-800 antialiased;
+}
