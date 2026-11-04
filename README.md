@@ -91,6 +91,27 @@ Tests use the separate `vanatrack_test` database. It is wiped and rebuilt from m
 The backend enforces every permission (401 = not logged in, 403 = role not allowed). The frontend also hides
 actions a role cannot perform, but that is only for convenience, never the security boundary.
 
+An owner who is later demoted to viewer loses edit rights on their projects (viewers are always read-only).
+
+---
+
+## Projects
+
+| Rule | Detail |
+|---|---|
+| **Who can create** | Managers and admins. The creator becomes the owner; ownership cannot be changed by editing |
+| **Who can edit/delete** | The owning manager, or any admin. Others get `403 "You can only modify projects you own."` |
+| **Validation** | Name 3–150 chars · target a whole number > 0 · end date on/after start date (also checked against saved dates on partial edits) · state from the official list of 28 states + 8 UTs · budget ≥ 0 with at most 2 decimals |
+| **Progress** | Never stored. `progress_percent`, `expected_percent` and `is_behind_schedule` are calculated on every request in `services/progress_service.py` (behind = active and more than 10 points behind the timeline; "today" uses India time) |
+| **List filters** | `search`, `type`, `status`, `state`, `mine`, `sort` (`name`, `created_at`, `end_date`, `progress`) + `order`. In the UI they live in the URL, so refresh and shared links keep them |
+
+### Deletion policy
+Deleting a project is one transaction, and the database decides what happens to related rows:
+records that belong to the project are deleted with it (**CASCADE**), history entries are kept with the
+link cleared (**SET NULL**), and a user who owns projects cannot be deleted (**RESTRICT**, deactivate instead).
+Tests read the live schema and fail if any foreign key lacks an explicit rule or a deleted project leaves
+references behind. Details: [DATABASE.md, section 3.5](DATABASE.md).
+
 ---
 
 ## Known trade-offs (to revisit)
