@@ -64,14 +64,12 @@ def test_create_requires_login(client: TestClient) -> None:
 
 def test_create_cleans_up_text_fields(client: TestClient, create_user: CreateUser) -> None:
     manager = create_user(role=UserRole.MANAGER)
-    payload = valid_project_payload(
-        name="  Mangrove Belt  ", unit=" Trees ", state="tamil nadu", district="  "
-    )
+    payload = valid_project_payload(name="  Mangrove Belt  ", unit=" kW ", state="tamil nadu", district="  ")
 
     body = client.post(PROJECTS_URL, json=payload, headers=auth_headers(manager)).json()
 
     assert body["name"] == "Mangrove Belt"
-    assert body["unit"] == "trees"
+    assert body["unit"] == "kW"  # trimmed, capitalisation kept
     assert body["state"] == "Tamil Nadu"
     assert body["district"] is None
 

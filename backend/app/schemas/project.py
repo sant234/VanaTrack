@@ -30,10 +30,9 @@ ProjectName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=NAME_MIN_LENGTH, max_length=NAME_MAX_LENGTH)
 ]
 TargetValue = Annotated[int, Field(gt=0, le=TARGET_MAX_VALUE, strict=True)]
-Unit = Annotated[
-    str,
-    StringConstraints(strip_whitespace=True, to_lower=True, min_length=1, max_length=UNIT_MAX_LENGTH),
-]
+# Capitalisation is kept on purpose: "kW" and "kL" are the correct symbols. Totals compare units
+# case-insensitively instead (e.g. "Trees" and "trees" count together on the dashboard).
+Unit = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=UNIT_MAX_LENGTH)]
 BudgetInr = Annotated[Decimal, Field(ge=0, max_digits=14, decimal_places=2)]
 
 

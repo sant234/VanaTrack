@@ -34,7 +34,7 @@ def sample_projects(create_project: CreateProject, owners: tuple[User, User]) ->
         type=ProjectType.SOLAR,
         status=ProjectStatus.PLANNED,
         state="Karnataka",
-        unit="kw",
+        unit="kW",
         end_date=date(2026, 9, 30),
     )
     create_project(
@@ -42,7 +42,7 @@ def sample_projects(create_project: CreateProject, owners: tuple[User, User]) ->
         name="Lake Revival",
         type=ProjectType.WATER_CONSERVATION,
         state="Karnataka",
-        unit="kl water",
+        unit="kL water",
         end_date=date(2026, 3, 31),
     )
     create_project(meera, name="100%_Recycled Drive", type=ProjectType.WASTE_MANAGEMENT, state="Maharashtra")
