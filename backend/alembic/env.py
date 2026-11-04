@@ -2,10 +2,10 @@
 
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import create_engine, pool
 
 import app.models  # noqa: F401  (imported so every table model registers itself on Base.metadata)
-from alembic import context
 from app.config import get_settings
 from app.database import Base
 
