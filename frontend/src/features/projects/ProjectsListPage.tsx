@@ -49,7 +49,7 @@ export default function ProjectsListPage() {
 
   const controls = useProjectFilters()
   const debouncedSearch = useDebouncedValue(controls.filters.search.trim(), SEARCH_DELAY_MS)
-  const { data: projects, isPending, isError, error, refetch } = useProjectList({
+  const { data: projects, isPending, isError, error, refetch, isPlaceholderData } = useProjectList({
     ...controls.apiParams,
     search: debouncedSearch || undefined,
   })
@@ -82,8 +82,9 @@ export default function ProjectsListPage() {
         />
       )
     }
+    // While new filter results load, the previous list stays visible but dimmed (no blank flash).
     return (
-      <>
+      <div aria-busy={isPlaceholderData} className={`transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}>
         <ul className="space-y-3 lg:hidden">
           {projects.map((project) => (
             <li key={project.id}>
@@ -94,7 +95,7 @@ export default function ProjectsListPage() {
         <div className="hidden lg:block">
           <ProjectsTable projects={projects} />
         </div>
-      </>
+      </div>
     )
   }
 
