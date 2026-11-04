@@ -159,19 +159,24 @@ Project responses always include derived fields: `current_value`, `progress_perc
 | Method | Path | Returns |
 |---|---|---|
 | GET | `/dashboard/summary` | KPI numbers |
-| GET | `/dashboard/by-type` | Count + avg progress per project type |
-| GET | `/dashboard/by-state` | Count + total achieved per state |
+| GET | `/dashboard/by-type` | Count + average completion per project type |
+| GET | `/dashboard/by-state` | Count + average completion + trees planted per state |
 | GET | `/dashboard/trend` | Monthly cumulative achieved (last 12 months) |
 | GET | `/dashboard/attention` | Projects behind schedule or with no update in 30 days |
 
 ### Activity, Users, Export, Health
 | Method | Path | Who |
 |---|---|---|
-| GET | `/activity?limit=&project_id=` | All |
+| GET | `/activity?limit=&project_id=` | All (newest first; `limit` default 50, max 100) |
 | GET | `/users` | Admin |
 | PATCH | `/users/{id}` | Admin (role, is_active) |
-| GET | `/export/projects.csv` | All |
+| GET | `/export/projects.csv?<same filters as /projects>` | All |
 | GET | `/health` | Public |
+
+**CSV download needs the token.** A plain `<a href>` cannot send the `Authorization` header, so the frontend
+fetches the CSV through `api.ts`, turns the response into a Blob, and triggers the download from it.
+Cells that start with `=`, `+`, `-`, `@`, tab or carriage return are prefixed with `'` so a spreadsheet never
+runs a user-typed project name as a formula (CSV injection).
 
 ---
 
@@ -216,11 +221,30 @@ Project responses always include derived fields: `current_value`, `progress_perc
 | Manage users | ✅ | ❌ 403 | ❌ 403 | ❌ 403 |
 
 - No token / expired token → **401**, frontend redirects to `/login`.
-- Deactivated user → **401** on login.
+- Deactivated user → **401** on login, and their existing token stops working on the next request.
+- The user's role is re-read from the database on every request (it is not stored in the JWT), so a role
+  change takes effect immediately, without logging out.
 - Admin cannot demote or deactivate themselves (prevents lockout).
+- A manager who is demoted or deactivated keeps ownership of their projects; only an admin can edit them
+  until the manager is restored. There is no ownership transfer (listed under "more time").
 
 ### 7.5 Activity logging
-Every create/update/delete on projects, every progress update, and every role change writes one `activity_logs` row in the **same transaction** as the change.
+One `activity_logs` row is written in the **same transaction** as each of these changes, so a change and its
+log entry are saved together or not at all:
+
+| Change | `action` | `details` |
+|---|---|---|
+| Project created | `created` | `{"name": ...}` |
+| Project edited | `updated` | `{"name": ..., "changes": {"field": {"from": ..., "to": ...}}}`; nothing is logged if no value actually changed |
+| Project deleted | `deleted` | `{"name": ...}` (the row's `project_id` becomes NULL, the name keeps it readable) |
+| Progress logged | `progress_logged` | `{"from": 600, "to": 850, "is_correction": false}` |
+| Newest progress entry undone | `progress_deleted` | `{"from": 600, "to": 850}` of the removed entry |
+| Role changed | `role_changed` | `{"email": ..., "from": "viewer", "to": "manager"}` |
+| User deactivated / reactivated | `user_deactivated` / `user_activated` | `{"email": ...}` |
+
+- A rejected request (400/403/422) writes nothing.
+- `scripts/create_admin.py` and `scripts/seed.py` run without a logged-in user; create_admin writes no
+  activity row, and seed writes rows that match the history it creates.
 
 ---
 
@@ -273,6 +297,14 @@ regains focus (`refetchOnWindowFocus: 'always'`), so progress logged in another 
 | Frontend | Vercel | Root `frontend/`, env `VITE_API_URL`, SPA rewrite to `index.html` |
 
 Env vars: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`, `CO2_KG_PER_TREE_PER_YEAR`.
+
+Deployment gotchas to handle in code, not by hand:
+- Neon gives `postgresql://...?sslmode=require`. SQLAlchemy needs `postgresql+psycopg://`, so `config.py`
+  rewrites the scheme; `sslmode=require` is kept.
+- Pin the Python version on Render (`PYTHON_VERSION` env var or `.python-version`) to a version the pinned
+  packages support. Do not rely on Render's default.
+- `CORS_ORIGINS` must list the exact Vercel URL (no trailing slash).
+- `frontend/vercel.json` rewrites every path to `/index.html`, so refreshing `/projects/3` works.
 
 Note: Render free tier sleeps when idle. Before the reviewers check, hit `/api/health` to wake it, and mention the cold start in the README.
 

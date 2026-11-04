@@ -38,7 +38,7 @@ PostgreSQL schema. Four tables. Progress is **append-only**; all totals and perc
 CREATE TYPE user_role       AS ENUM ('admin', 'manager', 'viewer');
 CREATE TYPE project_type    AS ENUM ('afforestation', 'water_conservation', 'solar', 'waste_management', 'other');
 CREATE TYPE project_status  AS ENUM ('planned', 'active', 'on_hold', 'completed', 'cancelled');
-CREATE TYPE activity_action AS ENUM ('created', 'updated', 'deleted', 'progress_logged', 'progress_deleted', 'role_changed', 'user_deactivated');
+CREATE TYPE activity_action AS ENUM ('created', 'updated', 'deleted', 'progress_logged', 'progress_deleted', 'role_changed', 'user_deactivated', 'user_activated');
 ```
 
 ---
@@ -128,10 +128,14 @@ CREATE TABLE activity_logs (
     created_at      TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_activity_created ON activity_logs(created_at DESC);
-CREATE INDEX idx_activity_project ON activity_logs(project_id);
+CREATE INDEX ix_activity_logs_created ON activity_logs(created_at DESC, id DESC);
+CREATE INDEX ix_activity_logs_project ON activity_logs(project_id, created_at DESC);  -- "Recent activity" on a project page
+CREATE INDEX ix_activity_logs_user    ON activity_logs(user_id);
 ```
 - `project_id` becomes NULL when a project is deleted, so the "deleted project X" entry survives. Store the project name in `details`.
+- Append-only like `progress_updates`: no endpoint updates or deletes activity rows.
+- The `details` shape for each action is listed in ARCHITECTURE.md section 7.5.
+- The migration's `downgrade` must drop the `activity_action` enum after dropping the table.
 
 ---
 
@@ -222,4 +226,16 @@ Each successful step also writes an `activity_logs` row in the same transaction.
 
 **Progress history:** 3–8 updates per project spread over the past 12 months, so the trend chart has shape.
 
-The seed script must be **idempotent**: it truncates and reseeds, and is safe to run repeatedly.
+**The seed must obey the same rules as the API** (otherwise the demo data would contradict the app):
+- Each update's `recorded_at` is on/after the project's `start_date`, not in the future, and later than the
+  previous update; `previous_value` equals the value of the update before it (0 for the first).
+- Values only go up, except deliberate corrections (`is_correction=true` with a note of 10+ characters).
+  No value above 10× target.
+- `completed` / `cancelled` projects get their updates while still active, so their history is valid.
+  The brief's project (1,000 trees, at 600) stays **active**, so the 600 → 850 step can be shown live in the demo.
+- "Behind schedule" and "no update in 30+ days" projects must be **active**, or the app will not flag them.
+- Every project and progress row gets a matching `activity_logs` row with the same timestamp.
+
+**Idempotent and safe:** running it twice gives the same result with no duplicates. It wipes data, so it
+only runs with an explicit `--reset` flag (`python -m scripts.seed --reset`) and prints which database it is
+about to reset before doing so. Running it without the flag changes nothing and explains how to use it.
