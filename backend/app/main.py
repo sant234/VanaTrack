@@ -22,6 +22,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Browsers hide this header from cross-origin JavaScript unless it is listed here; without it the
+        # CSV download cannot read the dated filename the server suggests.
+        expose_headers=["Content-Disposition"],
     )
 
     register_error_handlers(app)

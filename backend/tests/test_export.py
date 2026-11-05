@@ -10,6 +10,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models.progress_update import ProgressUpdate
 from app.models.project import ProjectStatus, ProjectType
 from app.models.user import User, UserRole
@@ -210,3 +211,13 @@ def test_neutralize_formula_leaves_safe_values_alone() -> None:
     assert neutralize_formula("2026-01-01") == "2026-01-01"
     assert neutralize_formula(-5) == -5  # numbers are not text a spreadsheet would run
     assert neutralize_formula("") == ""
+
+
+def test_browser_on_another_origin_can_read_the_filename(client: TestClient, viewer: User) -> None:
+    """The frontend runs on another origin (Vercel vs Render), so CORS must expose Content-Disposition."""
+    frontend_origin = get_settings().cors_origin_list[0]
+
+    response = client.get(EXPORT_URL, headers={**auth_headers(viewer), "Origin": frontend_origin})
+
+    assert response.headers["access-control-allow-origin"] == frontend_origin
+    assert "content-disposition" in response.headers["access-control-expose-headers"].lower()
