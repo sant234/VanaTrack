@@ -113,6 +113,7 @@ vanatrack/
 |---|---|---|
 | `/login` | Login | Public |
 | `/register` | Register (creates a Viewer) | Public |
+| `/status` | System status — is the API reachable, is the database reachable | Public |
 | `/` | Dashboard | All logged-in |
 | `/projects` | Projects list — search, filter by type/status/state, sort | All logged-in |
 | `/projects/new` | Create project | Manager, Admin |
@@ -120,7 +121,7 @@ vanatrack/
 | `/projects/:id/edit` | Edit project | Owner, Admin |
 | `/activity` | Organization-wide activity log | All logged-in |
 | `/users` | User management | Admin |
-| `*` | 404 page | — |
+| `*` | 404 page (inside the app frame; logged-out visitors are sent to login first) | All logged-in |
 
 **Layout:** sidebar on desktop, collapsible drawer on mobile. Top bar shows user name + role badge + logout.
 
