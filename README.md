@@ -106,6 +106,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
+**System status page:** http://localhost:5173/status (public, no login). It shows whether the browser can reach
+the API and the API can reach the database, and re-checks every 10 seconds. On a deployment, open `/status` on
+the frontend URL to tell "server down" apart from an app bug.
+
+Manual browser test results (every feature × desktop/mobile × role) are in [docs/test-log.md](docs/test-log.md).
+
 ---
 
 ## Checks
@@ -166,7 +172,7 @@ never changed, so the full history stays visible on the project page as a timeli
 
 **Every number is derived from that log, never stored separately.** The project's current value is simply
 its latest update, and progress % is `current ÷ target` (850 ÷ 1,000 = **85%**). The project page, the project
-list, sorting by progress and (Prompt 4) the dashboard all read the same database query, so they cannot
+list, sorting by progress and the dashboard all read the same database query, so they cannot
 disagree. After saving, the app refreshes every screen that shows project numbers before it confirms the save,
 so 85% appears everywhere at once, without reloading the page.
 

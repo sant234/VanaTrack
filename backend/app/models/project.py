@@ -3,8 +3,8 @@
 Deletion policy (see DATABASE.md, "Deletion policy"):
 - A project's owner cannot be deleted while they own projects (ON DELETE RESTRICT).
   Users are deactivated instead of deleted.
-- Records that belong to a project (progress updates, Prompt 3) are deleted with it (ON DELETE CASCADE).
-- History records that mention a project (activity log, Prompt 5) are kept with the link cleared
+- Records that belong to a project (progress updates) are deleted with it (ON DELETE CASCADE).
+- History records that mention a project (activity log) are kept with the link cleared
   (ON DELETE SET NULL).
 The database enforces these rules, so no code path can leave orphaned rows behind.
 """
