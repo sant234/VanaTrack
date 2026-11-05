@@ -6,6 +6,7 @@ import Alert from '../../components/Alert'
 import Button from '../../components/Button'
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
+import { useToast } from '../../components/toast/useToast'
 import { toDateInput, todayAsDateInput } from '../../lib/format'
 import type { Project } from '../projects/types'
 import LogProgressDialog from './LogProgressDialog'
@@ -34,7 +35,7 @@ function contextFor(project: Project, history: ProgressUpdate[]): ProgressContex
 export default function ProjectProgressSection({ project }: { project: Project }) {
   const history = useProgressHistory(project.id)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   const isClosed = CLOSED_STATUSES.includes(project.status)
   const canLog = project.can_edit && !isClosed
@@ -84,10 +85,7 @@ export default function ProjectProgressSection({ project }: { project: Project }
         </h2>
         {canLog && (
           <Button
-            onClick={() => {
-              setSavedMessage(null)
-              setIsDialogOpen(true)
-            }}
+            onClick={() => setIsDialogOpen(true)}
             disabled={!history.data}
           >
             <Plus aria-hidden className="size-4" />
@@ -99,7 +97,6 @@ export default function ProjectProgressSection({ project }: { project: Project }
       {project.can_edit && isClosed && (
         <Alert tone="info">This project is {project.status}, so new progress cannot be logged.</Alert>
       )}
-      {savedMessage && <Alert tone="info">{savedMessage}</Alert>}
 
       {renderBody()}
 
@@ -112,7 +109,7 @@ export default function ProjectProgressSection({ project }: { project: Project }
           onClose={() => setIsDialogOpen(false)}
           onSaved={(message) => {
             setIsDialogOpen(false)
-            setSavedMessage(message)
+            showToast('success', message)
           }}
         />
       )}

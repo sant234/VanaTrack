@@ -2,22 +2,17 @@
 import { History, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 
-import Alert from '../../components/Alert'
+import Badge from '../../components/Badge'
 import Button from '../../components/Button'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/StatePanels'
-import { ApiError } from '../../lib/api'
+import { errorMessageOf, useToast } from '../../components/toast/useToast'
 import { formatNumber, formatSignedNumber, formatTimestamp } from '../../lib/format'
 import type { ProgressUpdate } from './types'
 import { useDeleteProgressUpdate } from './useProgress'
 
 function ChangeChip({ change }: { change: number }) {
-  const style = change >= 0 ? 'bg-forest-100 text-forest-900' : 'bg-red-100 text-red-800'
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${style}`}>
-      {formatSignedNumber(change)}
-    </span>
-  )
+  return <Badge tone={change >= 0 ? 'success' : 'danger'}>{formatSignedNumber(change)}</Badge>
 }
 
 function TimelineEntry({ entry, unit, onUndo }: { entry: ProgressUpdate; unit: string; onUndo: () => void }) {
@@ -30,7 +25,7 @@ function TimelineEntry({ entry, unit, onUndo }: { entry: ProgressUpdate; unit: s
         </p>
         <ChangeChip change={entry.change} />
         {entry.is_correction && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Correction</span>
+          <Badge tone="warning">Correction</Badge>
         )}
       </div>
       <p className="mt-0.5 text-sm text-stone-500">
@@ -58,6 +53,7 @@ export default function ProgressTimeline({
 }) {
   const [entryToUndo, setEntryToUndo] = useState<ProgressUpdate | null>(null)
   const deleteUpdate = useDeleteProgressUpdate(projectId)
+  const { showToast } = useToast()
 
   if (history.length === 0) {
     return <EmptyState icon={History} title="No progress logged yet" description="Each update will appear here." />
@@ -67,6 +63,9 @@ export default function ProgressTimeline({
     if (!entryToUndo) return
     try {
       await deleteUpdate.mutateAsync(entryToUndo.id)
+      showToast('success', `Update undone. The total is back to ${formatNumber(entryToUndo.previous_value)} ${unit}.`)
+    } catch (error) {
+      showToast('error', errorMessageOf(error, 'Could not undo the update.'))
     } finally {
       setEntryToUndo(null)
     }
@@ -74,11 +73,6 @@ export default function ProgressTimeline({
 
   return (
     <>
-      {deleteUpdate.isError && (
-        <div className="mb-3">
-          <Alert>{deleteUpdate.error instanceof ApiError ? deleteUpdate.error.message : 'Could not undo the update.'}</Alert>
-        </div>
-      )}
       <ol aria-label="Progress history, newest first" className="ml-1.5">
         {history.map((entry) => (
           <TimelineEntry key={entry.id} entry={entry} unit={unit} onUndo={() => setEntryToUndo(entry)} />

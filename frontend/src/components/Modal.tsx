@@ -1,8 +1,10 @@
 /**
- * A centered dialog built on the browser's own <dialog> element, which already traps keyboard
- * focus inside it, dims the page behind it, and closes on Escape.
+ * A centered dialog built on the browser's own <dialog> element, which dims the page behind it and
+ * closes on Escape. useFocusTrap keeps Tab inside it (the native element lets Tab reach the browser UI).
  */
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+
+import { useFocusTrap } from '../lib/useFocusTrap'
 
 type ModalProps = {
   open: boolean
@@ -15,7 +17,8 @@ type ModalProps = {
 }
 
 export default function Modal({ open, labelledBy, onClose, busy = false, children }: ModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
+  // Escape is handled by the dialog's own cancel event below (so it can respect `busy`).
+  const dialogRef = useFocusTrap<HTMLDialogElement>(open)
 
   // Keep the real <dialog> element in sync with the `open` prop.
   useEffect(() => {
@@ -23,7 +26,7 @@ export default function Modal({ open, labelledBy, onClose, busy = false, childre
     if (!dialog) return
     if (open && !dialog.open) dialog.showModal()
     if (!open && dialog.open) dialog.close()
-  }, [open])
+  }, [open, dialogRef])
 
   return (
     <dialog

@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router-dom'
 
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
+import { useToast } from '../../components/toast/useToast'
 import { ApiError } from '../../lib/api'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import NotAuthorizedPage from '../../pages/NotAuthorizedPage'
 import ProjectForm from './ProjectForm'
 import ProjectNotFound from './ProjectNotFound'
@@ -18,16 +20,21 @@ export default function EditProjectPage() {
   const project = useProject(projectId)
   const options = useProjectOptions()
   const updateProject = useUpdateProject(projectId)
+  const { showToast } = useToast()
+
+  const isMissing =
+    Number.isNaN(projectId) || (project.error instanceof ApiError && project.error.status === NOT_FOUND_STATUS)
+  // The backend would refuse the save anyway (403); this just avoids showing a form that cannot work.
+  const isForbidden = project.data !== undefined && !project.data.can_edit
+  useDocumentTitle(isMissing ? 'Project not found' : isForbidden ? 'Not authorized' : 'Edit project')
+
+  if (isForbidden) return <NotAuthorizedPage />
 
   function renderBody() {
-    const isMissing =
-      Number.isNaN(projectId) || (project.error instanceof ApiError && project.error.status === NOT_FOUND_STATUS)
     if (isMissing) return <ProjectNotFound />
     if (project.isError) return <ErrorState message={project.error.message} onRetry={() => void project.refetch()} />
     if (options.isError) return <ErrorState message={options.error.message} onRetry={() => void options.refetch()} />
     if (!project.data || !options.data) return <Skeleton className="h-96" />
-    // The backend would refuse the save anyway (403); this just avoids showing a form that cannot work.
-    if (!project.data.can_edit) return <NotAuthorizedPage />
 
     return (
       <ProjectForm
@@ -38,7 +45,8 @@ export default function EditProjectPage() {
         submitLabel="Save changes"
         cancelTo={`/projects/${projectId}`}
         onSubmit={async (input) => {
-          await updateProject.mutateAsync(input)
+          const saved = await updateProject.mutateAsync(input)
+          showToast('success', `Changes to “${saved.name}” were saved.`)
           navigate(`/projects/${projectId}`, { replace: true })
         }}
       />

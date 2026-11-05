@@ -37,7 +37,7 @@ export default function ProgressByProject({ projects }: { projects: Project[] })
               percent={project.progress_percent}
               barClass={style.bar}
               label={
-                <Link to={`/projects/${project.id}`} className="font-medium hover:text-forest-700 hover:underline">
+                <Link to={`/projects/${project.id}`} className="-my-3 inline-block py-3 font-medium hover:text-forest-700 hover:underline">
                   {project.name}
                 </Link>
               }

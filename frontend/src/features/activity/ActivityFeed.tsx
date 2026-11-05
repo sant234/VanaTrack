@@ -34,7 +34,7 @@ function ProjectReference({ entry }: { entry: ActivityEntry }) {
     return (
       <Link
         to={`/projects/${entry.project_id}`}
-        className="font-medium break-words text-forest-700 hover:text-forest-900 hover:underline"
+        className="-my-3 inline-block py-3 font-medium break-words text-forest-700 hover:text-forest-900 hover:underline"
       >
         {entry.project_name}
       </Link>

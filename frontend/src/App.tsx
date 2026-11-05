@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 
 import ActivityPage from './features/activity/ActivityPage'
 import LoginPage from './features/auth/LoginPage'
@@ -14,8 +14,12 @@ import UsersAdminPage from './features/users/UsersAdminPage'
 import AppLayout from './layouts/AppLayout'
 import HealthCheckPage from './pages/HealthCheckPage'
 import NotAuthorizedPage from './pages/NotAuthorizedPage'
+import NotFoundPage from './pages/NotFoundPage'
 
-/** All page routes. Routes inside <ProtectedRoute> require login; <RoleGate> also restricts by role. */
+/**
+ * All page routes. Routes inside <ProtectedRoute> require login; <RoleGate> also restricts by role.
+ * Unknown URLs show the 404 page inside the app frame (logged-out visitors are sent to login first).
+ */
 export default function App() {
   return (
     <Routes>
@@ -46,10 +50,9 @@ export default function App() {
               </RoleGate>
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
-
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

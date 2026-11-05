@@ -112,7 +112,7 @@ CREATE INDEX ix_progress_updates_created_by     ON progress_updates(created_by);
 - No `UPDATE` endpoint exists for this table. Mistakes are fixed with a new correction entry.
 - `previous_value` is always filled in by the server (the latest total at the moment of logging); the project row is locked during the insert so two simultaneous saves cannot both record the same previous value.
 - The log stays in time order: `recorded_at` may not be earlier than the latest update or before the project's start date.
-- Only an admin can delete an entry, and **only the newest one** (an "undo"). Deleting an older entry would leave the next entry's `previous_value` pointing at a total that no longer exists. The deletion is written to `activity_logs` (Prompt 5).
+- Only an admin can delete an entry, and **only the newest one** (an "undo"). Deleting an older entry would leave the next entry's `previous_value` pointing at a total that no longer exists. The deletion is written to `activity_logs`.
 - Deleting a project cascades its updates (the project deletion itself is logged).
 
 ### 3.4 `activity_logs`
@@ -159,7 +159,7 @@ How this is kept true:
   - any foreign key to `projects` is not `CASCADE` or `SET NULL`;
   - after deleting a project through the API, any table still references its id.
 
-New tables in later prompts are covered by these tests automatically.
+New tables added later are covered by these tests automatically.
 
 ---
 

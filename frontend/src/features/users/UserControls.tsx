@@ -1,4 +1,5 @@
 /** The role dropdown and the active/inactive switch for one user, shared by the table and the cards. */
+import Badge from '../../components/Badge'
 import SelectField from '../../components/SelectField'
 import type { UserRole } from '../auth/types'
 import type { ManagedUser } from './types'
@@ -13,7 +14,7 @@ export const SELF_EXPLANATION = 'This is you. Another admin must change your rol
 
 /** Marks the logged-in admin's own row. */
 export function YouBadge() {
-  return <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">You</span>
+  return <Badge tone="info">You</Badge>
 }
 
 export type UserControlsProps = {

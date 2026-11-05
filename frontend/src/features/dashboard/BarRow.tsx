@@ -21,7 +21,7 @@ export default function BarRow({
   return (
     <li className="space-y-1">
       <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="min-w-0 truncate text-stone-800">{label}</span>
+        <span className="min-w-0 break-words text-stone-800">{label}</span>
         <span className="shrink-0 text-stone-600">{value}</span>
       </div>
       <div className="h-2 w-full rounded-full bg-stone-100" aria-hidden>

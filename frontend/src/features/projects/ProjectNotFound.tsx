@@ -10,7 +10,7 @@ export default function ProjectNotFound() {
       title="Project not found"
       description="It may have been deleted, or the link is wrong."
       action={
-        <Link to="/projects" className="text-sm font-semibold text-forest-700 hover:underline">
+        <Link to="/projects" className="inline-flex min-h-10 items-center text-sm font-semibold text-forest-700 hover:underline">
           Back to projects
         </Link>
       }

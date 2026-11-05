@@ -2,6 +2,7 @@
 import { CircleCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import Badge from '../../components/Badge'
 import { formatPercent } from '../../lib/format'
 import type { AttentionItem, AttentionReason } from './types'
 
@@ -14,14 +15,9 @@ function Reasons({ item }: { item: AttentionItem }) {
   return (
     <div className="flex flex-wrap gap-1">
       {item.reasons.map((reason) => (
-        <span
-          key={reason}
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
-            reason === 'behind_schedule' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-900'
-          }`}
-        >
+        <Badge key={reason} tone={reason === 'behind_schedule' ? 'danger' : 'warning'}>
           {REASON_TEXT[reason]}
-        </span>
+        </Badge>
       ))}
     </div>
   )
@@ -48,7 +44,7 @@ export default function AttentionList({ items }: { items: AttentionItem[] }) {
       <ul className="space-y-3 md:hidden">
         {items.map((item) => (
           <li key={item.id} className="rounded-xl border border-stone-200 p-3">
-            <Link to={`/projects/${item.id}`} className="font-semibold text-stone-900 hover:text-forest-700 hover:underline">
+            <Link to={`/projects/${item.id}`} className="-my-3 inline-block py-3 font-semibold text-stone-900 hover:text-forest-700 hover:underline">
               {item.name}
             </Link>
             <p className="mt-1 text-sm text-stone-600">
@@ -77,7 +73,7 @@ export default function AttentionList({ items }: { items: AttentionItem[] }) {
           {items.map((item) => (
             <tr key={item.id}>
               <td className="py-2 pr-3">
-                <Link to={`/projects/${item.id}`} className="font-semibold text-stone-900 hover:text-forest-700 hover:underline">
+                <Link to={`/projects/${item.id}`} className="-my-3 inline-block py-3 font-semibold text-stone-900 hover:text-forest-700 hover:underline">
                   {item.name}
                 </Link>
               </td>

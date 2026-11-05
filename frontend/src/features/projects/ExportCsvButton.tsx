@@ -1,29 +1,26 @@
 /**
  * "Export CSV": downloads exactly what the list shows (same filters and sort). Every role may export.
- * The file is fetched with the login token (see apiDownload), so a failed download shows a message here.
+ * The file is fetched with the login token (see apiDownload); success and failure both show a toast.
  */
 import { useMutation } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 
-import Alert from '../../components/Alert'
 import Button from '../../components/Button'
-import { ApiError } from '../../lib/api'
+import { errorMessageOf, useToast } from '../../components/toast/useToast'
 import { downloadProjectsCsv } from './projectsApi'
 import type { ProjectListParams } from './types'
 
 export default function ExportCsvButton({ params }: { params: ProjectListParams }) {
-  const download = useMutation({ mutationFn: () => downloadProjectsCsv(params) })
+  const { showToast } = useToast()
+  const download = useMutation({
+    mutationFn: () => downloadProjectsCsv(params),
+    onSuccess: () => showToast('success', 'The CSV file was downloaded.'),
+    onError: (error) => showToast('error', errorMessageOf(error, 'Could not export the projects.')),
+  })
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Button variant="secondary" onClick={() => download.mutate()} isLoading={download.isPending}>
-        {!download.isPending && <Download aria-hidden className="size-4" />}
-        Export CSV
-      </Button>
-      {download.isError && (
-        <Alert>
-          {download.error instanceof ApiError ? download.error.message : 'Could not export the projects.'}
-        </Alert>
-      )}
-    </div>
+    <Button variant="secondary" onClick={() => download.mutate()} isLoading={download.isPending}>
+      {!download.isPending && <Download aria-hidden className="size-4" />}
+      Export CSV
+    </Button>
   )
 }

@@ -6,11 +6,11 @@
 import { Users } from 'lucide-react'
 import { useState } from 'react'
 
-import Alert from '../../components/Alert'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Skeleton from '../../components/Skeleton'
 import { EmptyState, ErrorState } from '../../components/StatePanels'
-import { ApiError } from '../../lib/api'
+import { errorMessageOf, useToast } from '../../components/toast/useToast'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import type { UserRole } from '../auth/types'
 import { useAuth } from '../auth/useAuth'
 import type { ManagedUser, UserChanges } from './types'
@@ -24,21 +24,21 @@ function successMessage(user: ManagedUser, changes: UserChanges): string {
 }
 
 export default function UsersAdminPage() {
+  useDocumentTitle('Users')
   const { user: currentUser } = useAuth()
   const users = useUsers()
   const updateUser = useUpdateUser()
   const [userToDeactivate, setUserToDeactivate] = useState<ManagedUser | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   const savingUserId = updateUser.isPending ? (updateUser.variables?.userId ?? null) : null
 
   async function save(user: ManagedUser, changes: UserChanges) {
-    setNotice(null)
     try {
       await updateUser.mutateAsync({ userId: user.id, changes })
-      setNotice(successMessage(user, changes))
-    } catch {
-      // The error is shown above the list from updateUser.error.
+      showToast('success', successMessage(user, changes))
+    } catch (error) {
+      showToast('error', errorMessageOf(error, 'Could not update the user.'))
     }
   }
 
@@ -105,11 +105,6 @@ export default function UsersAdminPage() {
           Change roles or deactivate accounts. A change applies to that person's very next request.
         </p>
       </div>
-
-      {updateUser.isError && (
-        <Alert>{updateUser.error instanceof ApiError ? updateUser.error.message : 'Could not update the user.'}</Alert>
-      )}
-      {notice && <Alert tone="info">{notice}</Alert>}
 
       {renderBody()}
 

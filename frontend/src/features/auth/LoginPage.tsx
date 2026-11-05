@@ -82,7 +82,7 @@ export default function LoginPage() {
       </form>
       <p className="mt-5 text-center text-sm text-stone-600">
         New here?{' '}
-        <Link to="/register" className="font-semibold text-forest-700 hover:underline">
+        <Link to="/register" className="inline-flex min-h-10 items-center font-semibold text-forest-700 hover:underline">
           Create an account
         </Link>
       </p>
