@@ -158,11 +158,11 @@ function ProjectDetails({ project }: { project: Project }) {
 export default function ProjectDetailPage() {
   const projectId = useProjectIdParam()
   const project = useProject(projectId)
-  useDocumentTitle(project.data?.name ?? 'Project')
+  const isMissing =
+    Number.isNaN(projectId) || (project.error instanceof ApiError && project.error.status === NOT_FOUND_STATUS)
+  useDocumentTitle(isMissing ? 'Project not found' : (project.data?.name ?? 'Project'))
 
   function renderBody() {
-    const isMissing =
-      Number.isNaN(projectId) || (project.error instanceof ApiError && project.error.status === NOT_FOUND_STATUS)
     if (isMissing) return <ProjectNotFound />
     if (project.isError) return <ErrorState message={project.error.message} onRetry={() => void project.refetch()} />
     if (!project.data) {
@@ -179,7 +179,7 @@ export default function ProjectDetailPage() {
 
   return (
     <section className="mx-auto max-w-4xl space-y-4">
-      <Link to="/projects" className="inline-flex items-center gap-1 text-sm font-medium text-stone-600 hover:text-forest-700">
+      <Link to="/projects" className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-stone-600 hover:text-forest-700">
         <ArrowLeft aria-hidden className="size-4" />
         All projects
       </Link>
