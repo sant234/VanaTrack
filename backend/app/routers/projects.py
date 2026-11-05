@@ -74,14 +74,15 @@ def update_project(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ProjectOut:
-    project_service.update_project(db, project, data)
+    project_service.update_project(db, project, data, editor=current_user)
     return project_service.get_project_out(db, project.id, current_user)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(
     project: Project = Depends(require_project_owner_or_admin),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    project_service.delete_project(db, project)
+    project_service.delete_project(db, project, deleted_by=current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
