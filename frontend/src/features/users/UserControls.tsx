@@ -55,7 +55,7 @@ export function ActiveSwitch({ user, isSelf, isSaving, onActiveChange }: UserCon
     >
       <span
         aria-hidden
-        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${isOn ? 'bg-forest-600' : 'bg-stone-300'}`}
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${isOn ? 'bg-forest-500' : 'bg-stone-300'}`}
       >
         <span
           className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform ${isOn ? 'translate-x-5' : 'translate-x-0.5'}`}
