@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
+import ActivityPage from './features/activity/ActivityPage'
 import LoginPage from './features/auth/LoginPage'
 import DashboardPage from './features/dashboard/DashboardPage'
 import ProtectedRoute from './features/auth/ProtectedRoute'
@@ -36,10 +37,7 @@ export default function App() {
           />
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="projects/:projectId/edit" element={<EditProjectPage />} />
-          <Route
-            path="activity"
-            element={<PlaceholderPage title="Activity" description="The activity log arrives in Prompt 5." />}
-          />
+          <Route path="activity" element={<ActivityPage />} />
           <Route
             path="users"
             element={

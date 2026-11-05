@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.errors import register_error_handlers
-from app.routers import auth, dashboard, health, progress, projects
+from app.routers import activity, auth, dashboard, health, progress, projects
 
 API_PREFIX = "/api"
 
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router, prefix=API_PREFIX)
     app.include_router(progress.router, prefix=API_PREFIX)
     app.include_router(dashboard.router, prefix=API_PREFIX)
+    app.include_router(activity.router, prefix=API_PREFIX)
     return app
 
 

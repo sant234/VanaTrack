@@ -7,6 +7,7 @@ from sqlalchemy import ColumnElement, Row
 from sqlalchemy.orm import Session
 
 from app.errors import AppError, field_validation_error
+from app.models.activity_log import ActivityAction, ActivityEntityType
 from app.models.project import Project
 from app.models.user import User
 from app.permissions import can_edit_project
@@ -19,6 +20,7 @@ from app.schemas.project import (
     ProjectUpdate,
     SortOrder,
 )
+from app.services.activity_service import record_activity, to_json_value
 from app.services.progress_service import (
     ProgressColumns,
     build_progress,
@@ -120,15 +122,38 @@ def get_project_out(db: Session, project_id: int, viewer: User) -> ProjectOut:
 
 
 def create_project(db: Session, data: ProjectCreate, owner: User) -> Project:
-    """The person who creates a project becomes its owner."""
+    """The person who creates a project becomes its owner. The project and its log entry share one commit."""
     project = Project(**data.model_dump(), owner_id=owner.id)
     db.add(project)
+    db.flush()  # assigns project.id, which the activity entry needs
+    record_activity(
+        db,
+        owner,
+        ActivityAction.CREATED,
+        ActivityEntityType.PROJECT,
+        project.id,
+        project.id,
+        {"name": project.name},
+    )
     db.commit()
     return project
 
 
-def update_project(db: Session, project: Project, data: ProjectUpdate) -> Project:
-    """Change only the fields that were sent. Dates are checked against the saved values too."""
+def _changed_fields(project: Project, sent: dict[str, object]) -> dict[str, dict[str, object]]:
+    """Of the fields sent, only those whose value really differs, as {"field": {"from": .., "to": ..}}."""
+    return {
+        field_name: {"from": to_json_value(getattr(project, field_name)), "to": to_json_value(new_value)}
+        for field_name, new_value in sent.items()
+        if getattr(project, field_name) != new_value
+    }
+
+
+def update_project(db: Session, project: Project, data: ProjectUpdate, editor: User) -> Project:
+    """Change only the fields that were sent. Dates are checked against the saved values too.
+
+    Sending a value equal to the saved one is not a change: if nothing differs, nothing is written,
+    and no activity entry is recorded.
+    """
     changes = data.model_dump(exclude_unset=True)
     start_date = changes.get("start_date", project.start_date)
     end_date = changes.get("end_date", project.end_date)
@@ -141,17 +166,42 @@ def update_project(db: Session, project: Project, data: ProjectUpdate) -> Projec
         )
         raise field_validation_error({field: message})
 
-    for field_name, value in changes.items():
-        setattr(project, field_name, value)
+    changed = _changed_fields(project, changes)
+    if not changed:
+        return project
+
+    for field_name in changed:
+        setattr(project, field_name, changes[field_name])
+    record_activity(
+        db,
+        editor,
+        ActivityAction.UPDATED,
+        ActivityEntityType.PROJECT,
+        project.id,
+        project.id,
+        {"name": project.name, "changes": changed},
+    )
     db.commit()
     return project
 
 
-def delete_project(db: Session, project: Project) -> None:
+def delete_project(db: Session, project: Project, deleted_by: User) -> None:
     """Delete the project in one transaction.
 
     Related rows are handled by the database's ON DELETE rules (see DATABASE.md, "Deletion policy"):
-    child records are deleted with the project, history keeps its entry with the link cleared.
+    progress updates are deleted with the project; activity entries stay, with project_id set to NULL.
+    The "deleted" entry is written first, linked to the project, so the same SET NULL rule unlinks it;
+    the name in details keeps it readable afterwards.
     """
+    record_activity(
+        db,
+        deleted_by,
+        ActivityAction.DELETED,
+        ActivityEntityType.PROJECT,
+        project.id,
+        project.id,
+        {"name": project.name},
+    )
+    db.flush()  # insert the entry before the DELETE, so the database's SET NULL applies to it too
     db.delete(project)
     db.commit()

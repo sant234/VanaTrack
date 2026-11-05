@@ -63,10 +63,10 @@ def log_progress(
 def delete_latest_progress(
     project_id: int,
     update_id: int,
-    _admin: User = Depends(require_roles(UserRole.ADMIN)),
+    admin: User = Depends(require_roles(UserRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> Response:
     """Admins only, and only the newest entry (an "undo" for an obvious mistake)."""
     project = get_project_or_404(db, project_id)
-    progress_service.delete_latest_update(db, project, update_id)
+    progress_service.delete_latest_update(db, project, update_id, admin=admin)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

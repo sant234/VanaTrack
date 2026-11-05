@@ -17,10 +17,12 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import get_settings
 from app.errors import AppError, field_validation_error
+from app.models.activity_log import ActivityAction, ActivityEntityType
 from app.models.progress_update import ProgressUpdate
 from app.models.project import Project, ProjectStatus
 from app.models.user import User
 from app.schemas.progress import ProgressCreate
+from app.services.activity_service import record_activity
 
 PERCENT = 100
 PERCENT_DECIMALS = 1
@@ -227,7 +229,17 @@ def log_progress(db: Session, project: Project, data: ProgressCreate, author: Us
         created_by=author.id,
     )
     db.add(update)
-    db.commit()
+    db.flush()  # assigns update.id, which the activity entry needs
+    record_activity(
+        db,
+        author,
+        ActivityAction.PROGRESS_LOGGED,
+        ActivityEntityType.PROGRESS_UPDATE,
+        update.id,
+        project.id,
+        {"from": current_value, "to": data.value, "is_correction": data.is_correction},
+    )
+    db.commit()  # the update and its activity entry are saved together
     db.refresh(update, attribute_names=["author"])
     return update
 
@@ -235,7 +247,7 @@ def log_progress(db: Session, project: Project, data: ProgressCreate, author: Us
 # ---------- WRITE: undo the latest update (admin only) ----------
 
 
-def delete_latest_update(db: Session, project: Project, update_id: int) -> None:
+def delete_latest_update(db: Session, project: Project, update_id: int, admin: User) -> None:
     """Remove an update, but only the newest one.
 
     Removing an older entry would leave the next entry's previous_value pointing at a total that no
@@ -252,5 +264,14 @@ def delete_latest_update(db: Session, project: Project, update_id: int) -> None:
             "PROGRESS_NOT_LATEST",
             "Only the most recent update can be deleted. To fix an older entry, add a correction.",
         )
+    record_activity(
+        db,
+        admin,
+        ActivityAction.PROGRESS_DELETED,
+        ActivityEntityType.PROGRESS_UPDATE,
+        update.id,
+        project.id,
+        {"from": update.previous_value, "to": update.value},
+    )
     db.delete(update)
     db.commit()
