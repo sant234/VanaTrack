@@ -4,12 +4,18 @@ Usage (run from the backend/ folder):
     python -m scripts.seed            -> changes nothing; explains how to use it
     python -m scripts.seed --reset    -> WIPES every user, project, progress update and activity entry
                                          in the DATABASE_URL database, then loads the demo data
+    python -m scripts.seed --add      -> keeps everything and only ADDS what is missing: demo users whose
+                                         email does not exist yet, and demo projects whose name does not
+                                         exist yet (each with its progress history and activity)
 
 Safety:
 - Nothing is deleted without --reset, and the target (host, port, database name only, never the password)
   is printed before anything happens.
 - The wipe and the reload run in ONE transaction: if anything fails, the old data stays as it was.
 - Running it twice gives the same result: the tables are emptied and their id counters restarted.
+- --add never updates or deletes a row. Existing users keep their name, password, role and status; a
+  project whose name already exists is skipped with its whole history. Running it twice adds nothing
+  the second time. --add and --reset cannot be combined.
 
 All dates are relative to "today" in APP_TIMEZONE, so "behind schedule" and "no update in 30+ days" stay
 true whenever the demo is reseeded. The history obeys the same rules as the API (see check_history).
@@ -23,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 
@@ -49,6 +55,9 @@ FUTURE_PROJECT_CREATED_DAYS_AGO = 3
 CLOSED_STATUSES = {ProjectStatus.COMPLETED, ProjectStatus.CANCELLED, ProjectStatus.ON_HOLD}
 
 TABLES_TO_RESET = "activity_logs, progress_updates, projects, users"
+# Any fixed number works: --add holds this lock, so two runs at the same time cannot both add a project.
+ADD_MODE_LOCK_KEY = 2026_1105
+OWNER_ROLES = {UserRole.MANAGER, UserRole.ADMIN}
 
 
 class SeedDataError(Exception):
@@ -240,15 +249,20 @@ def _log(
     entry.created_at = when
 
 
-def create_users(db: Session, clock: Clock) -> dict[str, User]:
-    joined = clock.at(-USERS_CREATED_DAYS_AGO, PROJECT_CREATED_AT)
+def _new_user(seed: SeedUser, password_hash: str, clock: Clock) -> User:
+    return User(
+        name=seed.name,
+        email=seed.email,
+        password_hash=password_hash,
+        role=seed.role,
+        created_at=clock.at(-USERS_CREATED_DAYS_AGO, PROJECT_CREATED_AT),
+    )
+
+
+def create_users(db: Session, seeds: list[SeedUser], clock: Clock) -> dict[str, User]:
+    """Insert these demo users, all with the demo password."""
     password_hash = hash_password(DEMO_PASSWORD)  # one hash for all: bcrypt is slow on purpose
-    users = {
-        seed.key: User(
-            name=seed.name, email=seed.email, password_hash=password_hash, role=seed.role, created_at=joined
-        )
-        for seed in USERS
-    }
+    users = {seed.key: _new_user(seed, password_hash, clock) for seed in seeds}
     db.add_all(users.values())
     db.flush()
     return users
@@ -332,7 +346,7 @@ def reset_and_seed(db: Session, today: date) -> str:
         check_history(project)  # before touching anything
     clock = Clock(today, ZoneInfo(get_settings().app_timezone))
     db.execute(text(f"TRUNCATE {TABLES_TO_RESET} RESTART IDENTITY"))
-    users = create_users(db, clock)
+    users = create_users(db, USERS, clock)
     for seed in PROJECTS:
         create_project(db, seed, users[seed.owner_key], clock)
     db.commit()
@@ -340,6 +354,65 @@ def reset_and_seed(db: Session, today: date) -> str:
     return (
         f"Seeded {len(USERS)} users, {len(PROJECTS)} projects and {update_count} progress updates. "
         f"Log in as any of: {', '.join(user.email for user in USERS)} (password in the README)."
+    )
+
+
+# ---------- --add: only add what is missing ----------
+
+
+def _existing_demo_users(db: Session) -> dict[str, User]:
+    """Demo users that already exist, matched by email (unique in the database)."""
+    emails = [seed.email for seed in USERS]
+    by_email = {user.email: user for user in db.scalars(select(User).where(User.email.in_(emails)))}
+    return {seed.key: by_email[seed.email] for seed in USERS if seed.email in by_email}
+
+
+def _check_existing_owners(existing: dict[str, User]) -> None:
+    """An existing account is never changed, so one that cannot own projects stops the run instead."""
+    for owner_key in sorted({project.owner_key for project in PROJECTS}):
+        user = existing.get(owner_key)
+        if user is not None and (user.role not in OWNER_ROLES or not user.is_active):
+            state = "active" if user.is_active else "inactive"
+            raise SeedDataError(
+                f"{user.email} already exists as an {state} {user.role}, so it cannot own the demo projects. "
+                "Make it an active manager first."
+            )
+
+
+def add_missing(db: Session, today: date) -> str:
+    """Insert only the demo users and projects that do not exist yet. Never updates or deletes a row."""
+    for project in PROJECTS:
+        check_history(project)  # before touching anything
+    db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": ADD_MODE_LOCK_KEY})
+    clock = Clock(today, ZoneInfo(get_settings().app_timezone))
+
+    existing_users = _existing_demo_users(db)
+    _check_existing_owners(existing_users)
+    new_user_seeds = [seed for seed in USERS if seed.key not in existing_users]
+    users = existing_users | (create_users(db, new_user_seeds, clock) if new_user_seeds else {})
+
+    names = [project.name for project in PROJECTS]
+    existing_names = set(db.scalars(select(Project.name).where(Project.name.in_(names))))
+    new_projects = [seed for seed in PROJECTS if seed.name not in existing_names]
+    for seed in new_projects:
+        create_project(db, seed, users[seed.owner_key], clock)
+    db.commit()  # users, projects, progress and activity are saved together, or not at all
+    return add_summary(new_user_seeds, new_projects, sorted(existing_names))
+
+
+def add_summary(new_users: list[SeedUser], new_projects: list[SeedProject], skipped: list[str]) -> str:
+    update_count = sum(len(project.updates) for project in new_projects)
+    status_changes = sum(project.status_changed_days_ago is not None for project in new_projects)
+    activity_count = len(new_projects) + update_count + status_changes
+    created_users = ", ".join(seed.email for seed in new_users) or "none (all demo users already existed)"
+    skipped_text = f": {', '.join(skipped)}." if skipped else "."
+    return "\n".join(
+        [
+            f"Created users: {created_users}.",
+            f"Created {len(new_projects)} projects, {update_count} progress updates "
+            f"and {activity_count} activity entries.",
+            f"Skipped {len(skipped)} projects that already existed{skipped_text}",
+        ]
     )
 
 
@@ -355,27 +428,42 @@ def describe_target(db: Session) -> str:
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Load VanaTrack demo data.", allow_abbrev=False)
-    parser.add_argument(
+    # "Wipe everything" and "keep everything" cannot both be meant, so argparse refuses both (exit code 2).
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--reset",
         action="store_true",
         help="Delete ALL users, projects, progress and activity in DATABASE_URL, then load the demo data.",
     )
+    mode.add_argument(
+        "--add",
+        action="store_true",
+        help="Keep all existing data; only add demo users and demo projects that do not exist yet.",
+    )
     return parser.parse_args(argv)
+
+
+def explain_usage(target: str) -> None:
+    print(f"Nothing was changed in {target}.")
+    print("  python -m scripts.seed --add     keeps all data; adds only missing demo users and projects")
+    print(
+        "  python -m scripts.seed --reset   deletes ALL users, projects, progress and activity, then reloads"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     with SessionLocal() as db:
         target = describe_target(db)
-        if not args.reset:
-            print(f"Nothing was changed in {target}.")
-            print("This script deletes ALL users, projects, progress and activity, then loads demo data.")
-            print("To do that, run:  python -m scripts.seed --reset")
+        if not (args.reset or args.add):
+            explain_usage(target)
             return 0
-        print(f"Resetting {target} ...")
+        today = today_in_app_timezone()
+        print(f"{'Resetting' if args.reset else 'Adding missing demo data to'} {target} ...")
         try:
-            print(reset_and_seed(db, today_in_app_timezone()))
+            print(reset_and_seed(db, today) if args.reset else add_missing(db, today))
         except SeedDataError as error:
+            db.rollback()
             print(f"Error: {error} Nothing was changed.", file=sys.stderr)
             return 1
     return 0
