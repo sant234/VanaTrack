@@ -19,14 +19,14 @@ import type { ActivityAction, ActivityEntry } from './types'
 const RELATIVE_TIME_REFRESH_MS = 60 * 1000
 
 const ACTION_ICONS: Record<ActivityAction, { icon: LucideIcon; style: string }> = {
-  created: { icon: FolderPlus, style: 'bg-forest-100 text-forest-800' },
+  created: { icon: FolderPlus, style: 'bg-forest-100 text-forest-900' },
   updated: { icon: Pencil, style: 'bg-sky-100 text-sky-800' },
   deleted: { icon: Trash2, style: 'bg-red-100 text-red-800' },
-  progress_logged: { icon: TrendingUp, style: 'bg-forest-100 text-forest-800' },
+  progress_logged: { icon: TrendingUp, style: 'bg-forest-100 text-forest-900' },
   progress_deleted: { icon: Undo2, style: 'bg-amber-100 text-amber-900' },
   role_changed: { icon: UserCog, style: 'bg-violet-100 text-violet-800' },
   user_deactivated: { icon: UserX, style: 'bg-red-100 text-red-800' },
-  user_activated: { icon: UserCheck, style: 'bg-forest-100 text-forest-800' },
+  user_activated: { icon: UserCheck, style: 'bg-forest-100 text-forest-900' },
 }
 
 function ProjectReference({ entry }: { entry: ActivityEntry }) {

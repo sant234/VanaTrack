@@ -10,10 +10,10 @@ import EditProjectPage from './features/projects/EditProjectPage'
 import NewProjectPage from './features/projects/NewProjectPage'
 import ProjectDetailPage from './features/projects/ProjectDetailPage'
 import ProjectsListPage from './features/projects/ProjectsListPage'
+import UsersAdminPage from './features/users/UsersAdminPage'
 import AppLayout from './layouts/AppLayout'
 import HealthCheckPage from './pages/HealthCheckPage'
 import NotAuthorizedPage from './pages/NotAuthorizedPage'
-import PlaceholderPage from './pages/PlaceholderPage'
 
 /** All page routes. Routes inside <ProtectedRoute> require login; <RoleGate> also restricts by role. */
 export default function App() {
@@ -42,7 +42,7 @@ export default function App() {
             path="users"
             element={
               <RoleGate roles={['admin']} fallback={<NotAuthorizedPage />}>
-                <PlaceholderPage title="Users" description="User management arrives in Prompt 6." />
+                <UsersAdminPage />
               </RoleGate>
             }
           />
