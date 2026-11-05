@@ -44,7 +44,7 @@ export default function AttentionList({ items }: { items: AttentionItem[] }) {
       <ul className="space-y-3 md:hidden">
         {items.map((item) => (
           <li key={item.id} className="rounded-xl border border-stone-200 p-3">
-            <Link to={`/projects/${item.id}`} className="font-semibold text-stone-900 hover:text-forest-700 hover:underline">
+            <Link to={`/projects/${item.id}`} className="-my-3 inline-block py-3 font-semibold text-stone-900 hover:text-forest-700 hover:underline">
               {item.name}
             </Link>
             <p className="mt-1 text-sm text-stone-600">
@@ -73,7 +73,7 @@ export default function AttentionList({ items }: { items: AttentionItem[] }) {
           {items.map((item) => (
             <tr key={item.id}>
               <td className="py-2 pr-3">
-                <Link to={`/projects/${item.id}`} className="font-semibold text-stone-900 hover:text-forest-700 hover:underline">
+                <Link to={`/projects/${item.id}`} className="-my-3 inline-block py-3 font-semibold text-stone-900 hover:text-forest-700 hover:underline">
                   {item.name}
                 </Link>
               </td>

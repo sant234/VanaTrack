@@ -40,7 +40,7 @@ export default function ProjectActivityPanel({ projectId, isProjectGone }: { pro
         <h2 id="recent-activity-heading" className="text-lg font-bold text-stone-900">
           Recent activity
         </h2>
-        <Link to="/activity" className="text-sm font-medium text-forest-700 hover:text-forest-900 hover:underline">
+        <Link to="/activity" className="inline-flex min-h-10 items-center text-sm font-medium text-forest-700 hover:text-forest-900 hover:underline">
           All activity
         </Link>
       </div>

@@ -33,6 +33,10 @@ function TrendTooltip({ active, payload, label }: TooltipProps) {
 
 export default function CompletionTrendChart({ points }: { points: TrendPoint[] }) {
   const data = points.map((point) => ({ label: labelOf(point.month), value: point.average_completion_percent }))
+  // An axis with no line on it looks broken; say plainly that there is nothing to draw yet.
+  if (points.every((point) => point.average_completion_percent === null)) {
+    return <p className="text-sm text-stone-500">No started projects in the last 12 months, so there is no trend yet.</p>
+  }
 
   return (
     <figure>
@@ -68,7 +72,7 @@ export default function CompletionTrendChart({ points }: { points: TrendPoint[] 
         </ResponsiveContainer>
       </div>
       <details className="mt-2 text-sm">
-        <summary className="cursor-pointer text-stone-600 hover:text-stone-900">Show as table</summary>
+        <summary className="cursor-pointer py-2.5 text-stone-600 hover:text-stone-900">Show as table</summary>
         <table className="mt-2 w-full text-left">
           <thead className="text-xs text-stone-500 uppercase">
             <tr>

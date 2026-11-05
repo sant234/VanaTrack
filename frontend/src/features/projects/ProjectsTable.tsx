@@ -27,7 +27,7 @@ export default function ProjectsTable({ projects }: { projects: Project[] }) {
               <td className="px-4 py-3">
                 <Link
                   to={`/projects/${project.id}`}
-                  className="font-semibold text-stone-900 hover:text-forest-700 hover:underline"
+                  className="-my-3 inline-block py-3 font-semibold text-stone-900 hover:text-forest-700 hover:underline"
                 >
                   {project.name}
                 </Link>

@@ -117,7 +117,7 @@ export default function DashboardPage() {
           description="Once projects are created and progress is logged, their figures appear here."
           action={
             <RoleGate roles={['admin', 'manager']}>
-              <Link to="/projects/new" className="text-sm font-semibold text-forest-700 hover:underline">
+              <Link to="/projects/new" className="inline-flex min-h-10 items-center text-sm font-semibold text-forest-700 hover:underline">
                 Create the first project
               </Link>
             </RoleGate>
