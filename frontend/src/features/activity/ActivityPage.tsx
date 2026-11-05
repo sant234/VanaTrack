@@ -3,12 +3,14 @@ import { History } from 'lucide-react'
 
 import Skeleton from '../../components/Skeleton'
 import { EmptyState, ErrorState } from '../../components/StatePanels'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import ActivityFeed from './ActivityFeed'
 import { useActivity } from './useActivity'
 
 const FEED_LIMIT = 50
 
 export default function ActivityPage() {
+  useDocumentTitle('Activity')
   const activity = useActivity({ limit: FEED_LIMIT })
 
   function renderBody() {

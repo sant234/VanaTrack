@@ -1,11 +1,14 @@
 /**
- * Temporary page for Prompt 0: proves the browser can reach the API, and the API can reach the database.
- * It will be replaced by the dashboard in later prompts.
+ * /status: a public page (no login needed) that shows whether the browser can reach the API and the
+ * API can reach the database. Useful to check a deployment, or to tell "server down" apart from a bug.
  */
 import { useQuery } from '@tanstack/react-query'
 import { CircleCheck, CircleX, Leaf, LoaderCircle, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
+import Button from '../components/Button'
 import { ApiError, apiRequest } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 type HealthResponse = { status: string; database: string }
 
@@ -50,6 +53,7 @@ function StatusRow({ label, state }: { label: string; state: CheckState }) {
 }
 
 export default function HealthCheckPage() {
+  useDocumentTitle('System status')
   const { data, error, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['health'],
     queryFn: fetchHealth,
@@ -83,15 +87,16 @@ export default function HealthCheckPage() {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => refetch()}
-        disabled={isFetching}
-        className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-forest-700 px-4 py-2.5 font-semibold text-white hover:bg-forest-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-500 disabled:opacity-60"
-      >
+      <Button onClick={() => void refetch()} disabled={isFetching} className="mt-6">
         <RefreshCw aria-hidden className={`size-4 ${isFetching ? 'animate-spin' : ''}`} />
         Check again
-      </button>
+      </Button>
+      <Link
+        to="/"
+        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg text-sm font-semibold text-forest-700 hover:underline"
+      >
+        Go to VanaTrack
+      </Link>
     </main>
   )
 }

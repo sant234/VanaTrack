@@ -1,11 +1,11 @@
 import { FolderPlus, Plus, SearchX } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
-import Alert from '../../components/Alert'
 import Button from '../../components/Button'
 import Skeleton from '../../components/Skeleton'
 import { EmptyState, ErrorState } from '../../components/StatePanels'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import RoleGate from '../auth/RoleGate'
 import { useAuth } from '../auth/useAuth'
 import ExportCsvButton from './ExportCsvButton'
@@ -44,10 +44,8 @@ function LoadingList() {
 }
 
 export default function ProjectsListPage() {
+  useDocumentTitle('Projects')
   const { user } = useAuth()
-  const location = useLocation()
-  const notice = (location.state as { notice?: string } | null)?.notice
-
   const controls = useProjectFilters()
   const debouncedSearch = useDebouncedValue(controls.filters.search.trim(), SEARCH_DELAY_MS)
   const listParams = { ...controls.apiParams, search: debouncedSearch || undefined }
@@ -114,8 +112,6 @@ export default function ProjectsListPage() {
           <NewProjectButton />
         </div>
       </div>
-
-      {notice && <Alert tone="info">{notice}</Alert>}
 
       {user && <ProjectFilters controls={controls} options={options} role={user.role} />}
 

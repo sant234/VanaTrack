@@ -2,6 +2,7 @@
 import { CircleCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import Badge from '../../components/Badge'
 import { formatPercent } from '../../lib/format'
 import type { AttentionItem, AttentionReason } from './types'
 
@@ -14,14 +15,9 @@ function Reasons({ item }: { item: AttentionItem }) {
   return (
     <div className="flex flex-wrap gap-1">
       {item.reasons.map((reason) => (
-        <span
-          key={reason}
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
-            reason === 'behind_schedule' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-900'
-          }`}
-        >
+        <Badge key={reason} tone={reason === 'behind_schedule' ? 'danger' : 'warning'}>
           {REASON_TEXT[reason]}
-        </span>
+        </Badge>
       ))}
     </div>
   )

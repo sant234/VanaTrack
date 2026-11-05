@@ -1,15 +1,14 @@
+import Badge, { type BadgeTone } from '../../components/Badge'
 import type { UserRole } from './types'
 
-const ROLE_STYLES: Record<UserRole, string> = {
-  admin: 'bg-amber-100 text-amber-900',
-  manager: 'bg-forest-100 text-forest-900',
-  viewer: 'bg-stone-200 text-stone-700',
+const ROLE_TONES: Record<UserRole, BadgeTone> = {
+  admin: 'warning',
+  manager: 'success',
+  viewer: 'neutral',
 }
 
+const ROLE_LABELS: Record<UserRole, string> = { admin: 'Admin', manager: 'Manager', viewer: 'Viewer' }
+
 export default function RoleBadge({ role }: { role: UserRole }) {
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${ROLE_STYLES[role]}`}>
-      {role}
-    </span>
-  )
+  return <Badge tone={ROLE_TONES[role]}>{ROLE_LABELS[role]}</Badge>
 }

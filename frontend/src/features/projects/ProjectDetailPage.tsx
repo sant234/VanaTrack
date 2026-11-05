@@ -2,17 +2,18 @@ import { ArrowLeft, CalendarRange, IndianRupee, MapPin, Pencil, Trash2, UserRoun
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import Alert from '../../components/Alert'
 import Button from '../../components/Button'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ProgressBar from '../../components/ProgressBar'
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
+import { errorMessageOf, useToast } from '../../components/toast/useToast'
 import { ApiError } from '../../lib/api'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { formatDate, formatNumber, formatPercent, formatRupees, formatTimestampDate } from '../../lib/format'
 import ProjectActivityPanel from '../activity/ProjectActivityPanel'
 import ProjectProgressSection from '../progress/ProjectProgressSection'
-import { BehindScheduleBadge, StatusBadge } from './ProjectBadges'
+import { BehindScheduleBadge, StatusBadge, TargetExceededBadge } from './ProjectBadges'
 import ProjectNotFound from './ProjectNotFound'
 import { TYPE_LABELS } from './projectLabels'
 import type { Project } from './types'
@@ -52,11 +53,7 @@ function ProgressCard({ project }: { project: Project }) {
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-600">
         <span>{formatPercent(project.expected_percent)} of the timeline has passed.</span>
         {project.is_behind_schedule && <BehindScheduleBadge />}
-        {project.is_target_exceeded && (
-          <span className="rounded-full bg-forest-100 px-2 py-0.5 text-xs font-semibold text-forest-900">
-            Exceeded target
-          </span>
-        )}
+        {project.is_target_exceeded && <TargetExceededBadge />}
       </div>
       <p className="mt-3 text-xs text-stone-500">
         {project.last_updated_at ? `Last progress update ${formatTimestampDate(project.last_updated_at)}.` : 'No progress logged yet.'}
@@ -69,13 +66,16 @@ function ProjectDetails({ project }: { project: Project }) {
   const navigate = useNavigate()
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const deleteProject = useDeleteProject(project.id)
+  const { showToast } = useToast()
 
   async function confirmDelete() {
     try {
       await deleteProject.mutateAsync()
-      navigate('/projects', { replace: true, state: { notice: `Project “${project.name}” was deleted.` } })
-    } catch {
-      setIsConfirmOpen(false) // the error message is shown on the page
+      showToast('success', `Project “${project.name}” was deleted.`)
+      navigate('/projects', { replace: true })
+    } catch (error) {
+      setIsConfirmOpen(false)
+      showToast('error', errorMessageOf(error, 'Could not delete the project.'))
     }
   }
 
@@ -105,12 +105,6 @@ function ProjectDetails({ project }: { project: Project }) {
           </div>
         )}
       </div>
-
-      {deleteProject.isError && (
-        <Alert>
-          {deleteProject.error instanceof ApiError ? deleteProject.error.message : 'Could not delete the project.'}
-        </Alert>
-      )}
 
       <ProgressCard project={project} />
 
@@ -164,6 +158,7 @@ function ProjectDetails({ project }: { project: Project }) {
 export default function ProjectDetailPage() {
   const projectId = useProjectIdParam()
   const project = useProject(projectId)
+  useDocumentTitle(project.data?.name ?? 'Project')
 
   function renderBody() {
     const isMissing =

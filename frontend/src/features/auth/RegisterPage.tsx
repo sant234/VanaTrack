@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import Alert from '../../components/Alert'
 import Button from '../../components/Button'
 import TextField from '../../components/TextField'
+import { useToast } from '../../components/toast/useToast'
 import { ApiError } from '../../lib/api'
 import AuthPageShell from './AuthPageShell'
 import { useAuth } from './useAuth'
@@ -14,6 +15,7 @@ type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword'
 export default function RegisterPage() {
   const { status, register } = useAuth()
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   const [form, setForm] = useState<Record<RegisterField, string>>({
     name: '',
@@ -52,7 +54,8 @@ export default function RegisterPage() {
 
     setIsSubmitting(true)
     try {
-      await register({ name: form.name.trim(), email: form.email.trim(), password: form.password })
+      const newUser = await register({ name: form.name.trim(), email: form.email.trim(), password: form.password })
+      showToast('success', `Welcome, ${newUser.name}! Your account was created.`)
       navigate('/', { replace: true })
     } catch (error) {
       if (error instanceof ApiError && error.code === 'EMAIL_ALREADY_REGISTERED') {

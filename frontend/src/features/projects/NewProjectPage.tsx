@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
+import { useToast } from '../../components/toast/useToast'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
 import ProjectForm from './ProjectForm'
@@ -7,9 +9,11 @@ import { EMPTY_PROJECT_FORM } from './projectFormValues'
 import { useCreateProject, useProjectOptions } from './useProjects'
 
 export default function NewProjectPage() {
+  useDocumentTitle('New project')
   const navigate = useNavigate()
   const options = useProjectOptions()
   const createProject = useCreateProject()
+  const { showToast } = useToast()
 
   return (
     <section className="mx-auto max-w-3xl space-y-5">
@@ -24,6 +28,7 @@ export default function NewProjectPage() {
           cancelTo="/projects"
           onSubmit={async (input) => {
             const project = await createProject.mutateAsync(input)
+            showToast('success', `Project “${project.name}” was created.`)
             navigate(`/projects/${project.id}`, { replace: true })
           }}
         />

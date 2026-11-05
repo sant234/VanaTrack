@@ -2,7 +2,7 @@
  * Data hooks for projects, built on TanStack Query.
  *
  * Every change (create, update, delete) marks the cached project data as out of date ("invalidate"),
- * so lists, detail pages and later the dashboard refetch and show the new values automatically.
+ * so lists, detail pages and the dashboard refetch and show the new values automatically.
  */
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
@@ -26,8 +26,8 @@ export const projectKeys = {
 }
 
 /**
- * Everything that shows project numbers must refresh after a change: lists, the dashboard (Prompt 4),
- * the activity log (Prompt 5), and the changed project's own page and progress history.
+ * Everything that shows project numbers must refresh after a change: lists, the dashboard,
+ * the activity log, and the changed project's own page and progress history.
  */
 export function invalidateProjectData(queryClient: QueryClient, projectId?: number): Promise<unknown> {
   const keys: unknown[][] = [[...projectKeys.lists], ['dashboard'], ['activity']]

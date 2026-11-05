@@ -10,6 +10,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import SelectField from '../../components/SelectField'
 import Skeleton from '../../components/Skeleton'
 import { EmptyState, ErrorState } from '../../components/StatePanels'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import RoleGate from '../auth/RoleGate'
 import type { ProjectType } from '../projects/types'
 import { useProjectOptions } from '../projects/useProjects'
@@ -78,6 +79,7 @@ function TypeFilter({ value, onChange }: { value: string; onChange: (type: strin
 }
 
 export default function DashboardPage() {
+  useDocumentTitle('Dashboard')
   const [searchParams, setSearchParams] = useSearchParams()
   const typeFilter = searchParams.get('type') ?? ''
   const type = (typeFilter || undefined) as ProjectType | undefined

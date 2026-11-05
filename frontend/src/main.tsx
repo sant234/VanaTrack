@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 import App from './App.tsx'
+import ToastProvider from './components/toast/ToastProvider'
 import AuthProvider from './features/auth/AuthProvider'
 import './index.css'
 import { queryClient } from './lib/queryClient'
@@ -14,15 +15,18 @@ if (!rootElement) {
 }
 
 // Providers wrap the whole app: the query client handles server data,
-// the auth provider knows who is logged in, and the router handles URLs.
+// toasts show short success/error messages, the auth provider knows who is logged in,
+// and the router handles URLs.
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

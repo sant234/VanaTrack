@@ -1,12 +1,15 @@
 import { Leaf } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
+
 /** Centered card layout shared by the login and register pages. */
 export default function AuthPageShell({ title, subtitle, children }: {
   title: string
   subtitle: string
   children: ReactNode
 }) {
+  useDocumentTitle(title)
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">

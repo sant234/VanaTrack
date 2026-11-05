@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router-dom'
 
 import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
+import { useToast } from '../../components/toast/useToast'
 import { ApiError } from '../../lib/api'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import NotAuthorizedPage from '../../pages/NotAuthorizedPage'
 import ProjectForm from './ProjectForm'
 import ProjectNotFound from './ProjectNotFound'
@@ -13,11 +15,13 @@ import { useProjectIdParam } from './useProjectIdParam'
 const NOT_FOUND_STATUS = 404
 
 export default function EditProjectPage() {
+  useDocumentTitle('Edit project')
   const projectId = useProjectIdParam()
   const navigate = useNavigate()
   const project = useProject(projectId)
   const options = useProjectOptions()
   const updateProject = useUpdateProject(projectId)
+  const { showToast } = useToast()
 
   function renderBody() {
     const isMissing =
@@ -38,7 +42,8 @@ export default function EditProjectPage() {
         submitLabel="Save changes"
         cancelTo={`/projects/${projectId}`}
         onSubmit={async (input) => {
-          await updateProject.mutateAsync(input)
+          const saved = await updateProject.mutateAsync(input)
+          showToast('success', `Changes to “${saved.name}” were saved.`)
           navigate(`/projects/${projectId}`, { replace: true })
         }}
       />
