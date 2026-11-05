@@ -12,10 +12,12 @@ export const activityKeys = {
   list: (params: ActivityParams) => ['activity', params] as const,
 }
 
-export function useActivity(params: ActivityParams) {
+/** `enabled: false` stops all fetching, e.g. while the project this panel belongs to is being deleted. */
+export function useActivity(params: ActivityParams, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: activityKeys.list(params),
     queryFn: () => fetchActivity(params),
+    enabled,
     // Other people's changes are what this page is for, so check again whenever the tab regains focus.
     refetchOnWindowFocus: 'always',
   })

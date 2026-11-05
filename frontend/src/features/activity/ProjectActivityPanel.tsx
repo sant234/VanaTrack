@@ -9,8 +9,12 @@ import { useActivity } from './useActivity'
 
 const RECENT_LIMIT = 10
 
-export default function ProjectActivityPanel({ projectId }: { projectId: number }) {
-  const activity = useActivity({ limit: RECENT_LIMIT, projectId })
+/**
+ * `isProjectGone`: true once the project is being deleted. Its activity can then no longer be fetched
+ * (the API answers 404), so the panel stops asking and keeps showing what it has until the page changes.
+ */
+export default function ProjectActivityPanel({ projectId, isProjectGone }: { projectId: number; isProjectGone: boolean }) {
+  const activity = useActivity({ limit: RECENT_LIMIT, projectId }, { enabled: !isProjectGone })
 
   function renderBody() {
     if (activity.isPending) {

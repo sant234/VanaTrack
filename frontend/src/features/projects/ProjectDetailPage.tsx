@@ -139,7 +139,7 @@ function ProjectDetails({ project }: { project: Project }) {
         </div>
       )}
 
-      <ProjectActivityPanel projectId={project.id} />
+      <ProjectActivityPanel projectId={project.id} isProjectGone={deleteProject.isPending || deleteProject.isSuccess} />
 
       <p className="text-xs text-stone-500">
         Created {formatTimestampDate(project.created_at)} · Last edited {formatTimestampDate(project.updated_at)}
