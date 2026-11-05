@@ -3,7 +3,7 @@
  * Desktop (lg and up): fixed sidebar on the left.  Mobile: a menu button opens a slide-in drawer.
  */
 import { Leaf, LogOut, Menu, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import Button from '../components/Button'
@@ -11,6 +11,7 @@ import { useToast } from '../components/toast/useToast'
 import RoleBadge from '../features/auth/RoleBadge'
 import type { User } from '../features/auth/types'
 import { useAuth } from '../features/auth/useAuth'
+import { useFocusTrap } from '../lib/useFocusTrap'
 import { navItemsForRole } from './navigation'
 
 function Brand() {
@@ -47,47 +48,9 @@ function NavLinks({ user, onNavigate }: { user: User; onNavigate?: () => void })
   )
 }
 
-const FOCUSABLE = 'a[href], button:not([disabled])'
-
-/**
- * Keep keyboard focus inside the open drawer: Escape closes it, and Tab / Shift+Tab wrap around
- * instead of moving to the page behind. Focus starts on the first link or button.
- */
-function useDrawerFocusTrap(onClose: () => void) {
-  const drawerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const drawer = drawerRef.current
-    if (!drawer) return
-    const focusable = () => Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE))
-    focusable()[0]?.focus()
-
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab') return
-      const items = focusable()
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last?.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first?.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onClose])
-
-  return drawerRef
-}
-
 function MobileDrawer({ user, onClose }: { user: User; onClose: () => void }) {
-  const drawerRef = useDrawerFocusTrap(onClose)
+  // Escape closes it; Tab cycles inside it instead of reaching the page behind.
+  const drawerRef = useFocusTrap<HTMLDivElement>(true, onClose)
 
   return (
     <div ref={drawerRef} className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
