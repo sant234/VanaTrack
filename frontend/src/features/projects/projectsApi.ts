@@ -1,4 +1,4 @@
-import { apiRequest } from '../../lib/api'
+import { apiDownload, apiRequest } from '../../lib/api'
 import type { Project, ProjectInput, ProjectListParams, ProjectOptions } from './types'
 
 function toQueryString(params: ProjectListParams): string {
@@ -9,6 +9,11 @@ function toQueryString(params: ProjectListParams): string {
   }
   const text = query.toString()
   return text ? `?${text}` : ''
+}
+
+/** The list with the same filters and sort, as a CSV file saved by the browser. */
+export function downloadProjectsCsv(params: ProjectListParams): Promise<void> {
+  return apiDownload(`/export/projects.csv${toQueryString(params)}`, 'vanatrack-projects.csv')
 }
 
 export function fetchProjects(params: ProjectListParams): Promise<Project[]> {

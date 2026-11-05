@@ -73,8 +73,8 @@ async function toApiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, code, detail, fields)
 }
 
-/** Call the API and return the parsed JSON, or throw an ApiError. */
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+/** Send a request with the saved token. Returns the successful response, or throws an ApiError. */
+async function send(path: string, options: RequestInit): Promise<Response> {
   const headers = new Headers(options.headers)
   if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
@@ -99,8 +99,37 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     }
     throw await toApiError(response)
   }
+  return response
+}
+
+/** Call the API and return the parsed JSON, or throw an ApiError. */
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await send(path, options)
   if (response.status === 204) {
     return undefined as T
   }
   return (await response.json()) as T
+}
+
+/** The file name the server suggested in Content-Disposition, e.g. attachment; filename="x.csv". */
+function filenameFrom(response: Response, fallback: string): string {
+  const match = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')
+  return match ? match[1] : fallback
+}
+
+/**
+ * Download a file that needs the login token. A plain <a href> cannot send the Authorization header,
+ * so the file is fetched here, turned into a Blob, and saved through a temporary object URL.
+ */
+export async function apiDownload(path: string, fallbackFilename: string): Promise<void> {
+  const response = await send(path, {})
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filenameFrom(response, fallbackFilename)
+  document.body.append(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(objectUrl)
 }

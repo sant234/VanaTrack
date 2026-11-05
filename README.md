@@ -57,6 +57,39 @@ ADMIN_PASSWORD='...' python -m scripts.create_admin --email admin@example.com --
 There is deliberately no `--password` option: command-line arguments end up in shell history and are
 visible to other users via `ps`. The script never prints the password.
 
+### Load demo data (optional)
+`scripts/seed.py` fills the database with demo users, 10 projects, their progress history and matching
+activity entries. **It deletes every user, project, progress update and activity entry first**, so it only
+runs with an explicit flag, and it prints which database it is about to reset (host, port and name only;
+never the password):
+```bash
+python -m scripts.seed           # changes nothing; explains what --reset does
+python -m scripts.seed --reset   # wipe DATABASE_URL and load the demo data (same result every time)
+```
+To try it without touching your own data, point it at a scratch database for that one command:
+`DATABASE_URL=postgresql+psycopg://vanatrack:vanatrack@localhost:5432/vanatrack_seed_scratch python -m scripts.seed --reset`
+(create and migrate that database first: `createdb ...` then `alembic upgrade head` with the same `DATABASE_URL`).
+
+Demo accounts (password **`Demo@1234`** for all; demo data only):
+
+| Email | Role |
+|---|---|
+| admin@vanatrack.demo | Admin |
+| manager@vanatrack.demo | Manager (owns 5 projects) |
+| manager2@vanatrack.demo | Manager (owns the other 5) |
+| viewer@vanatrack.demo | Viewer |
+
+What the demo data shows (dates are relative to the day you seed, so these stay true):
+- **Western Ghats Reforestation**: the brief's project, 1,000 trees, at **600** and active. Log 850 to run the scenario.
+- **Thar Solar Microgrid**: behind schedule. **Pune Rainwater Harvesting**: no update for 45 days. Both appear
+  under *Needs attention*.
+- **Chennai Coastal Mangroves**: exceeded its target (108%).
+- **Nashik Waste Segregation**: a correction (4,800 → 4,500 with a note).
+- One completed, one cancelled and one on-hold project, with their status changes in the activity log.
+- **Rishikesh River Clean-up** is planned and starts next month, so it has no progress yet (the one
+  project without 3–8 updates).
+- Log in as `manager2@` and try to edit a `manager@` project to see the 403.
+
 ### 3. Frontend (app on http://localhost:5173)
 ```bash
 cd frontend
@@ -169,6 +202,20 @@ averages them, counting each project at most 100%, and leaves out cancelled and 
 In the brief's scenario, updating 600 → 850 changes *Trees planted* to **850** (not 1,450) and the project's
 completion to 85%. The dashboard refreshes right after a save, and also when you return to its tab after logging
 progress somewhere else.
+
+---
+
+## CSV export
+
+**Export CSV** on the Projects page downloads the list exactly as shown, with the same search, filters and sort,
+for every role. The API is `GET /api/export/projects.csv` with the same query parameters as `GET /api/projects`
+and the same query behind it, so the numbers always match the screen and the dashboard.
+
+- The download needs the login token, which a plain link cannot send. The app fetches the file with the token
+  and saves it from a Blob.
+- **CSV injection:** a spreadsheet runs a cell starting with `=`, `+`, `-`, `@`, tab or carriage return as a
+  formula. Such text (e.g. a project named `=HYPERLINK(...)`) is written with a leading `'`, so it shows as text.
+- The file starts with a UTF-8 byte-order mark, so Excel shows ₹ and Indian-language names correctly.
 
 ---
 

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.errors import register_error_handlers
-from app.routers import activity, auth, dashboard, health, progress, projects, users
+from app.routers import activity, auth, dashboard, export, health, progress, projects, users
 
 API_PREFIX = "/api"
 
@@ -22,6 +22,9 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Browsers hide this header from cross-origin JavaScript unless it is listed here; without it the
+        # CSV download cannot read the dated filename the server suggests.
+        expose_headers=["Content-Disposition"],
     )
 
     register_error_handlers(app)
@@ -32,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router, prefix=API_PREFIX)
     app.include_router(activity.router, prefix=API_PREFIX)
     app.include_router(users.router, prefix=API_PREFIX)
+    app.include_router(export.router, prefix=API_PREFIX)
     return app
 
 

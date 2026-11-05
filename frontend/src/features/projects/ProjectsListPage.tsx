@@ -8,6 +8,7 @@ import { EmptyState, ErrorState } from '../../components/StatePanels'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import RoleGate from '../auth/RoleGate'
 import { useAuth } from '../auth/useAuth'
+import ExportCsvButton from './ExportCsvButton'
 import ProjectCard from './ProjectCard'
 import ProjectFilters from './ProjectFilters'
 import ProjectsTable from './ProjectsTable'
@@ -49,10 +50,8 @@ export default function ProjectsListPage() {
 
   const controls = useProjectFilters()
   const debouncedSearch = useDebouncedValue(controls.filters.search.trim(), SEARCH_DELAY_MS)
-  const { data: projects, isPending, isError, error, refetch, isPlaceholderData } = useProjectList({
-    ...controls.apiParams,
-    search: debouncedSearch || undefined,
-  })
+  const listParams = { ...controls.apiParams, search: debouncedSearch || undefined }
+  const { data: projects, isPending, isError, error, refetch, isPlaceholderData } = useProjectList(listParams)
   const { data: options } = useProjectOptions()
 
   function renderResults() {
@@ -110,7 +109,10 @@ export default function ProjectsListPage() {
             </p>
           )}
         </div>
-        <NewProjectButton />
+        <div className="flex flex-wrap items-start gap-2">
+          <ExportCsvButton params={listParams} />
+          <NewProjectButton />
+        </div>
       </div>
 
       {notice && <Alert tone="info">{notice}</Alert>}
