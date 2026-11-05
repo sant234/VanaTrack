@@ -58,15 +58,23 @@ There is deliberately no `--password` option: command-line arguments end up in s
 visible to other users via `ps`. The script never prints the password.
 
 ### Load demo data (optional)
-`scripts/seed.py` fills the database with demo users, 10 projects, their progress history and matching
-activity entries. **It deletes every user, project, progress update and activity entry first**, so it only
-runs with an explicit flag, and it prints which database it is about to reset (host, port and name only;
-never the password):
+`scripts/seed.py` loads demo users, 10 projects, their progress history and matching activity entries.
+It does nothing without a flag, and with a flag it first prints which database it will change (host, port
+and name only; never the password):
 ```bash
-python -m scripts.seed           # changes nothing; explains what --reset does
-python -m scripts.seed --reset   # wipe DATABASE_URL and load the demo data (same result every time)
+python -m scripts.seed           # changes nothing; explains the two modes
+python -m scripts.seed --add     # keep ALL existing data; add only what is missing
+python -m scripts.seed --reset   # DELETE every user, project, progress update and activity entry, then reload
 ```
-To try it without touching your own data, point it at a scratch database for that one command:
+- **`--add` is the safe choice for a database you already use.** It never updates or deletes a row: existing
+  users keep their name, password, role and status, and your activity history stays as it is. It creates
+  only the demo users whose email does not exist yet, and only the demo projects whose name does not exist
+  yet (each with its full history). Running it again adds nothing. If a demo manager email already exists
+  as a viewer or a deactivated account, it stops and changes nothing instead of editing that account.
+- **`--reset`** gives the exact demo database every time, but wipes everything first, including any admin
+  you created yourself. `--add` and `--reset` cannot be combined.
+
+To try `--reset` without touching your own data, point it at a scratch database for that one command:
 `DATABASE_URL=postgresql+psycopg://vanatrack:vanatrack@localhost:5432/vanatrack_seed_scratch python -m scripts.seed --reset`
 (create and migrate that database first: `createdb ...` then `alembic upgrade head` with the same `DATABASE_URL`).
 
