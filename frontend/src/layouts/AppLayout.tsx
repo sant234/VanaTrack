@@ -71,6 +71,14 @@ function MobileDrawer({ user, onClose }: { user: User; onClose: () => void }) {
             <X aria-hidden className="size-5" />
           </button>
         </div>
+        {/* The top bar hides the name on small screens to save space, so show who is logged in here. */}
+        <div className="mt-6 flex items-center justify-between gap-3 rounded-lg bg-stone-50 px-3 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-stone-900">{user.name}</p>
+            <p className="truncate text-xs text-stone-500">{user.email}</p>
+          </div>
+          <RoleBadge role={user.role} />
+        </div>
         <NavLinks user={user} onNavigate={onClose} />
       </aside>
     </div>

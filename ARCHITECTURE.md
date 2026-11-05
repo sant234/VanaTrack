@@ -296,7 +296,7 @@ regains focus (`refetchOnWindowFocus: 'always'`), so progress logged in another 
 | API | Render web service | Build: `pip install -r requirements.txt`; start: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | Frontend | Vercel | Root `frontend/`, env `VITE_API_URL`, SPA rewrite to `index.html` |
 
-Env vars: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`, `CO2_KG_PER_TREE_PER_YEAR`.
+Env vars: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`, `APP_TIMEZONE`, `CO2_KG_PER_TREE_PER_YEAR`.
 
 Deployment gotchas to handle in code, not by hand:
 - Neon gives `postgresql://...?sslmode=require`. SQLAlchemy needs `postgresql+psycopg://`, so `config.py`
