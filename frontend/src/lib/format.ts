@@ -66,3 +66,25 @@ export function toDateInput(moment: Date): string {
   const pad = (part: number) => String(part).padStart(2, '0')
   return `${moment.getFullYear()}-${pad(moment.getMonth() + 1)}-${pad(moment.getDate())}`
 }
+
+const SECOND_MS = 1000
+const MINUTE_MS = 60 * SECOND_MS
+const HOUR_MS = 60 * MINUTE_MS
+const DAY_MS = 24 * HOUR_MS
+const JUST_NOW_LIMIT_MS = 45 * SECOND_MS
+const RELATIVE_DAYS_LIMIT = 7
+
+/**
+ * How long ago a moment was: "just now", "5 min ago", "3 hr ago", "2 days ago".
+ * After a week the date reads better, so it falls back to e.g. "4 Nov 2026".
+ * A moment slightly in the future (clocks disagree) counts as "just now".
+ */
+export function formatRelativeTime(isoTimestamp: string, now: number): string {
+  const elapsed = now - new Date(isoTimestamp).getTime()
+  if (elapsed < JUST_NOW_LIMIT_MS) return 'just now'
+  if (elapsed < HOUR_MS) return `${Math.max(1, Math.floor(elapsed / MINUTE_MS))} min ago`
+  if (elapsed < DAY_MS) return `${Math.floor(elapsed / HOUR_MS)} hr ago`
+  const days = Math.floor(elapsed / DAY_MS)
+  if (days < RELATIVE_DAYS_LIMIT) return `${days} ${days === 1 ? 'day' : 'days'} ago`
+  return formatTimestampDate(isoTimestamp)
+}

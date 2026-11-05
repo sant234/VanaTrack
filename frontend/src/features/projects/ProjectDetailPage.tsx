@@ -10,6 +10,7 @@ import Skeleton from '../../components/Skeleton'
 import { ErrorState } from '../../components/StatePanels'
 import { ApiError } from '../../lib/api'
 import { formatDate, formatNumber, formatPercent, formatRupees, formatTimestampDate } from '../../lib/format'
+import ProjectActivityPanel from '../activity/ProjectActivityPanel'
 import ProjectProgressSection from '../progress/ProjectProgressSection'
 import { BehindScheduleBadge, StatusBadge } from './ProjectBadges'
 import ProjectNotFound from './ProjectNotFound'
@@ -137,6 +138,8 @@ function ProjectDetails({ project }: { project: Project }) {
           <p className="mt-2 text-sm whitespace-pre-line text-stone-700">{project.description}</p>
         </div>
       )}
+
+      <ProjectActivityPanel projectId={project.id} />
 
       <p className="text-xs text-stone-500">
         Created {formatTimestampDate(project.created_at)} · Last edited {formatTimestampDate(project.updated_at)}
